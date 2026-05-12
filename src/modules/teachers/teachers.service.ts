@@ -17,7 +17,7 @@ export class TeachersService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService
-  ) {}
+  ) { }
   async create(payload: CreateTeacherDto, filename: string) {
     const existTeacher = await this.prisma.teachers.findFirst({
       where: {
@@ -33,7 +33,7 @@ export class TeachersService {
     });
 
     if (existTeacher) {
-      if(filename){
+      if (filename) {
         const filePath = join(process.cwd(), 'src', 'uploads', filename);
         await fs.unlinkSync(filePath);
       }
@@ -63,17 +63,17 @@ export class TeachersService {
         full_name: payload.full_name,
         email: payload.email,
         phone: payload.phone,
-        address: payload.address, 
+        address: payload.address,
         password: passHash,
         photo: filename ?? null,
         teachersGroups: payload.groups?.length ? {
-          create: payload.groups?.map((groupId)=>({
-            group_id:groupId
-          })) 
+          create: payload.groups?.map((groupId) => ({
+            group_id: groupId
+          }))
         } : undefined,
       },
     });
-    await this.emailService.sendEmail(payload.email,payload.phone, payload.password);
+    await this.emailService.sendEmail(payload.email, payload.phone, payload.password);
 
     return {
       success: true,
@@ -82,7 +82,7 @@ export class TeachersService {
   }
 
   async findAll(query) {
-    const where : any = {};
+    const where: any = {};
 
     if (query.status) {
       where.status = query.status;
@@ -115,12 +115,12 @@ export class TeachersService {
         address: true,
         status: true,
         created_at: true,
-        teachersGroups:{
-          select:{
-            group:{
-              select:{
-                id:true,
-                name:true
+        teachersGroups: {
+          select: {
+            group: {
+              select: {
+                id: true,
+                name: true
               }
             }
           }
@@ -142,18 +142,18 @@ export class TeachersService {
       select: {
         id: true,
         full_name: true,
-        email: true, 
+        email: true,
         phone: true,
         photo: true,
         address: true,
         status: true,
         created_at: true,
-        teachersGroups:{
-          select:{
-            group:{
-              select:{
-                id:true,
-                name:true
+        teachersGroups: {
+          select: {
+            group: {
+              select: {
+                id: true,
+                name: true
               }
             }
           }
@@ -176,46 +176,46 @@ export class TeachersService {
       throw new NotFoundException('This is for teachers only');
     }
 
-  const groups = await this.prisma.groups.findMany({
-    where: {
-      teachersGroups:{
-        some:{
-          teacher_id:id
+    const groups = await this.prisma.groups.findMany({
+      where: {
+        teachersGroups: {
+          some: {
+            teacher_id: id
+          }
         }
-      }
-    },
-    select:{
-      id:true,
-      name:true,
-      max_students:true,
-      start_date:true,
-      start_time:true,
-      week_day:true,
-      studentGroups:{
-        select:{
-          students:{
-            select:{
-              id:true,
-              full_name:true,
-              phone:true
+      },
+      select: {
+        id: true,
+        name: true,
+        max_students: true,
+        start_date: true,
+        start_time: true,
+        week_day: true,
+        studentGroups: {
+          select: {
+            students: {
+              select: {
+                id: true,
+                full_name: true,
+                phone: true
+              }
             }
           }
         }
       }
-    }
-  })
-  
-  return groups.map(el =>({
-    id:el.id,
-    name:el.name,
-    max_students:el.max_students,
-    start_date:el.start_date,
-    start_time:el.start_time,
-    week_day:el.week_day,
-    studentCount:el.studentGroups.length,
-    students:el.studentGroups.map(el => el.students)
-  }))
-}
+    })
+
+    return groups.map(el => ({
+      id: el.id,
+      name: el.name,
+      max_students: el.max_students,
+      start_date: el.start_date,
+      start_time: el.start_time,
+      week_day: el.week_day,
+      studentCount: el.studentGroups.length,
+      students: el.studentGroups.map(el => el.students)
+    }))
+  }
 
   async update(id: number, payload: UpdateTeacherDto, filename?: string) {
     const teacher = await this.prisma.teachers.findUnique({ where: { id } });
@@ -264,7 +264,7 @@ export class TeachersService {
         ...payload,
         photo,
         password: passHash,
-        teachersGroups:payload.groups?.length ? {
+        teachersGroups: payload.groups?.length ? {
           deleteMany: {},
           create: payload.groups?.map((groupId) => ({
             group_id: groupId,
@@ -292,11 +292,11 @@ export class TeachersService {
     await fs.unlinkSync(filePath);
 
     await this.prisma.teachers.update({
-        where: { id },
-        data: {
-          status: Status.inactive
-        }
-      });
+      where: { id },
+      data: {
+        status: Status.inactive
+      }
+    });
     return {
       success: true,
       message: 'Teacher deleted successfully',

@@ -64,6 +64,7 @@ export class GroupsService {
       },
       select: {
         start_time: true,
+        week_day: true,
         course: {
           select: {
             duration_hours: true
@@ -73,6 +74,9 @@ export class GroupsService {
     })
 
     const RoomTime = roomGroups.some(el => {
+      const hasCommonDay = el.week_day.some(day => payload.week_day.includes(day));
+      if (!hasCommonDay) return false;
+
       const start = timeToMinutes(el.start_time);
       const end = start + el.course.duration_hours * 60;
       return start < endNew && end > startNew
@@ -240,47 +244,25 @@ export class GroupsService {
   }
 
   async findOne(id: number) {
-    const group: any = await this.prisma.groups.findFirst({
+    const group = await this.prisma.groups.findUnique({
       where: { id },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        start_date: true,
-        week_day: true,
-        start_time: true,
-        max_students: true,
-        status: true,
+      include: {
+        rooms: true,
+        course: true,
         teachersGroups: {
-          select: {
+          include: {
             teacher: {
               select: {
                 id: true,
-                full_name: true
+                full_name: true,
+                photo: true,
               }
             }
           }
         },
         studentGroups: {
-          select: {
-            students: {
-              select: {
-                id: true,
-                full_name: true
-              }
-            }
-          }
-        },
-        course: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        rooms: {
-          select: {
-            id: true,
-            name: true
+          include: {
+            students: true
           }
         }
       }
@@ -290,18 +272,80 @@ export class GroupsService {
       throw new NotFoundException('Group not found');
     }
 
-    return group.map((group) => ({
-      id: group.id,
-      name: group.name,
-      start_date: group.start_date,
-      week_day: group.week_day,
-      start_time: group.start_time,
-      max_students: group.max_students,
-      teachers: group.teachersGroups?.map((g) => g.teacher) || [],
-      students: group.studentGroups?.map((g) => g.students) || [],
-      course: group.course.name,
-      rooms: group.rooms.name
-    }));
+    const groupStudentsCount = await this.prisma.studentGroup.count({
+      where: {
+        group_id: id,
+        status: Status.active
+      }
+    });
+
+    const now = new Date();
+    const studentsList = group.studentGroups || [];
+    
+    const totalAge = studentsList.reduce((sum, item) => {
+      if (!item.students?.birth_date) return sum;
+      const birthDate = new Date(item.students.birth_date);
+      if (isNaN(birthDate.getTime())) return sum;
+
+      let age = now.getFullYear() - birthDate.getFullYear();
+      const monthDiff = now.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return sum + age;
+    }, 0);
+
+    const averageAge = studentsList.length > 0 ? totalAge / studentsList.length : 0;
+
+    // Calculate lesson counts
+    let totalLessonsCount = 0;
+    let firstMonthLessonsCount = 0;
+    
+    if (group.start_date && group.week_day && group.course?.duration_month) {
+      const dayMap = {
+        'Dushanba': 1, 'Seshanba': 2, 'Chorshanba': 3, 'Payshanba': 4, 'Juma': 5, 'Shanba': 6, 'Yakshanba': 0,
+        'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0,
+        '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 0
+      };
+      const lessonDays = group.week_day.map(d => dayMap[d]).filter(d => d !== undefined);
+      
+      for (let m = 0; m < group.course.duration_month; m++) {
+        const monthDate = new Date(group.start_date);
+        monthDate.setMonth(monthDate.getMonth() + m);
+        const year = monthDate.getFullYear();
+        const month = monthDate.getMonth();
+        
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        let monthCount = 0;
+
+        for (let i = 1; i <= daysInMonth; i++) {
+          const date = new Date(year, month, i);
+          if (m === 0 && date < group.start_date) continue;
+          
+          if (lessonDays.includes(date.getDay())) {
+            monthCount++;
+            totalLessonsCount++;
+          }
+        }
+        if (m === 0) firstMonthLessonsCount = monthCount;
+      }
+    }
+
+    const dataFormatter = {
+      ...group,
+      students_count: groupStudentsCount,
+      teachers: group.teachersGroups.map(g => g.teacher),
+      averageAge: averageAge,
+      room_capacity: group.rooms?.capacity,
+      room: group.rooms, // For frontend compat
+      total_lessons: totalLessonsCount,
+      month_lessons: firstMonthLessonsCount,
+    };
+
+    return {
+      success: true,
+      data: dataFormatter,
+    };
   }
 
   async update(id: number, payload: UpdateGroupDto) {
@@ -440,5 +484,83 @@ export class GroupsService {
       success: true,
       message: 'Group deleted successfully',
     };
+  }
+
+  async getSchedule(id: number) {
+    const group = await this.prisma.groups.findUnique({
+      where: { id },
+      include: {
+        course: {
+          select: {
+            duration_month: true,
+          }
+        }
+      }
+    });
+
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+
+    const { start_date, week_day } = group;
+    const duration_month = group.course.duration_month;
+
+    // Day names mapping
+    const dayMap = {
+      'sunday': 0, 'yakshanba': 0,
+      'monday': 1, 'dushanba': 1,
+      'tuesday': 2, 'seshanba': 2,
+      'wednesday': 3, 'chorshanba': 3,
+      'thursday': 4, 'payshanba': 4,
+      'friday': 5, 'juma': 5,
+      'saturday': 6, 'shanba': 6
+    };
+
+    // Convert week_day to numbers [0-6]
+    const weekDays = week_day.map(d => {
+      const lower = d.toLowerCase().trim();
+      if (dayMap[lower] !== undefined) return dayMap[lower];
+      const val = parseInt(d);
+      return val === 7 ? 0 : val;
+    });
+
+    const months = [
+      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+      'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
+    ];
+    const daysUz = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+
+    const result = [];
+    let currentStartDate = new Date(start_date);
+
+    for (let i = 1; i <= duration_month; i++) {
+      const lessons = [];
+      const monthEnd = new Date(currentStartDate);
+      monthEnd.setMonth(monthEnd.getMonth() + 1);
+
+      let tempDate = new Date(currentStartDate);
+      while (tempDate < monthEnd) {
+        const dayIdx = tempDate.getDay();
+        if (weekDays.includes(dayIdx)) {
+          lessons.push({
+            date: tempDate.toISOString().split('T')[0],
+            day_of_month: tempDate.getDate(),
+            day_name: daysUz[dayIdx]
+          });
+        }
+        tempDate.setDate(tempDate.getDate() + 1);
+      }
+
+      result.push({
+        learning_month: i,
+        month_name: months[currentStartDate.getMonth()],
+        year: currentStartDate.getFullYear(),
+        lessons: lessons
+      });
+
+      currentStartDate = monthEnd;
+    }
+
+    return result;
   }
 }

@@ -16,7 +16,7 @@ export class StudentsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
-  ) {}
+  ) { }
   async create(payload: CreateStudentDto, filename: string) {
     const existStudent = await this.prisma.students.findFirst({
       where: {
@@ -67,7 +67,7 @@ export class StudentsService {
         password: passHash,
         photo: filename ?? null,
         birth_date: new Date(payload.birth_date),
-        studentGroups:payload.groups?.length ? {
+        studentGroups: payload.groups?.length ? {
           create: payload.groups?.map((groupId) => ({
             group_id: groupId,
           }))
@@ -75,7 +75,7 @@ export class StudentsService {
       },
     });
     
-    await this.emailService.sendEmail(payload.email,payload.phone, payload.password);
+    this.emailService.sendEmail(payload.email,payload.phone, payload.password);
 
 
     return {
@@ -85,7 +85,7 @@ export class StudentsService {
   }
 
   async findAll(query) {
-    const where : any = {};
+    const where: any = {};
 
     if (query.status) {
       where.status = query.status;
@@ -123,12 +123,12 @@ export class StudentsService {
         birth_date: true,
         status: true,
         created_at: true,
-        studentGroups:{
-          select:{
-            groups:{
-              select:{
-                id:true,
-                name:true
+        studentGroups: {
+          select: {
+            groups: {
+              select: {
+                id: true,
+                name: true
               }
             }
           }
@@ -155,12 +155,12 @@ export class StudentsService {
         photo: true,
         address: true,
         status: true,
-        studentGroups:{
-          select:{
-            groups:{
-              select:{
-                id:true,
-                name:true
+        studentGroups: {
+          select: {
+            groups: {
+              select: {
+                id: true,
+                name: true
               }
             }
           }
@@ -223,7 +223,7 @@ export class StudentsService {
         photo,
         password: passHash,
         birth_date,
-        studentGroups:payload.groups?.length ? {
+        studentGroups: payload.groups?.length ? {
           deleteMany: {},
           create: payload.groups?.map((groupId) => ({
             group_id: groupId,
@@ -251,11 +251,11 @@ export class StudentsService {
     await fs.unlinkSync(filePath);
 
     await this.prisma.students.update({
-        where: { id } ,
-        data: {
-          status: StudentStatus.inactive
-        }
-      });
+      where: { id },
+      data: {
+        status: StudentStatus.inactive
+      }
+    });
 
     return {
       success: true,
