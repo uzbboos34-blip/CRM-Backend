@@ -179,6 +179,7 @@ model Lesson {
   user_id     Int?
   topic       String?
   description String?
+  date        String   // Sana (masalan: "2024-05-13")
   status      Status   @default(active)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
@@ -200,7 +201,7 @@ model Attendance {
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
 
-  lessons  Lesson    @relation(fields: [lesson_id], references: [id])
+  lessons  Lesson    @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
   teachers Teachers? @relation(fields: [teacher_id], references: [id])
   users    User?     @relation(fields: [user_id], references: [id])
   students Students  @relation(fields: [student_id], references: [id])

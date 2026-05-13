@@ -6,75 +6,82 @@ import { PrismaService } from 'src/core/database/prisma.service';
 
 @Injectable()
 export class AttendancesService {
-  constructor(private prisma: PrismaService) {}
-  async create(payload: CreateAttendanceDto, currentUser:{id: number, role: UserRole}) {
+  constructor(private prisma: PrismaService) { }
+  async create(payload: any, currentUser: { id: number, role: UserRole }) {
+    const { group_id, date, topic, description, records } = payload;
 
-    const week = {
-      "1": "Monday",
-      "2": "Tuesday",
-      "3": "Wednesday",
-      "4": "Thursday",
-      "5": "Friday",
-      "6": "Saturday",
-      "7": "Sunday",
-    }
-    const lessonGroup = await this.prisma.lesson.findFirst({
-      where: {
-        id: payload.lesson_id,
-      },
-      select: {
-        groups: {
-          select:{
-            start_time: true,
-            start_date: true,
-            week_day: true,
-            course: {
-              select: {
-                duration_hours: true
-              }
-            }
-          }
+    // 1. Lesson yaratish yoki yangilash
+    let lesson = await this.prisma.lesson.findFirst({
+      where: { group_id, date }
+    });
+
+    if (lesson) {
+      lesson = await this.prisma.lesson.update({
+        where: { id: lesson.id },
+        data: { 
+          topic, 
+          description,
+          teacher_id: currentUser.role == UserRole.TEACHER ? currentUser.id : lesson.teacher_id,
+          user_id: currentUser.role != UserRole.TEACHER ? currentUser.id : lesson.user_id,
         }
-      }
-    })
-    const week_day = lessonGroup?.groups.week_day
-    const newDate = new Date()
-    const day = newDate.getDay()
-    if(!week_day?.includes(week[day])){
-      throw new BadRequestException("Dars vaqti xali boshlanmadi")
-    }
-    
-    const timeToMinutes = (time: string) => {
-      const [hours, minutes] = time.split(':').map(Number);
-      return hours * 60 + minutes
+      });
+    } else {
+      lesson = await this.prisma.lesson.create({
+        data: {
+          group_id,
+          date,
+          topic,
+          description,
+          teacher_id: currentUser.role == UserRole.TEACHER ? currentUser.id : null,
+          user_id: currentUser.role != UserRole.TEACHER ? currentUser.id : null,
+        }
+      });
     }
 
-    const startMinute = timeToMinutes(lessonGroup!.groups.start_time)
-    const endMinute = startMinute + lessonGroup!.groups.course.duration_hours * 60
-    const nowMinute = newDate.getHours() * 60 + newDate.getMinutes()
-    
-    if (!(startMinute < nowMinute && endMinute > nowMinute) && currentUser.role == "TEACHER") {
-      throw new BadRequestException("Darsdan tashqarida vaqtda davomat olib bolamaydi")
+    // 2. Eski davomatlarni o'chirish (yangilash uchun)
+    await this.prisma.attendance.deleteMany({
+      where: { lesson_id: lesson.id }
+    });
+
+    // 3. Faqat qatnashgan studentlarni yozish (foydalanuvchi so'ragandek)
+    const presentRecords = records
+      .filter((r: any) => r.isPresent)
+      .map((r: any) => ({
+        lesson_id: lesson.id,
+        student_id: r.student_id,
+        isPresent: true,
+        teacher_id: currentUser.role == UserRole.TEACHER ? currentUser.id : null,
+        user_id: currentUser.role != UserRole.TEACHER ? currentUser.id : null,
+      }));
+
+    if (presentRecords.length > 0) {
+      await this.prisma.attendance.createMany({
+        data: presentRecords
+      });
     }
-    
-    await this.prisma.attendance.create({
-      data: {
-        ...payload,
-        teacher_id: currentUser.role == UserRole.TEACHER ? currentUser.id: null,
-        user_id: currentUser.role != UserRole.TEACHER ? currentUser.id: null
-      }
-    })
+
     return {
       success: true,
-      message: 'Attendance created successfully',
-    }
+      message: 'Davomat muvaffaqiyatli saqlandi',
+      lesson_id: lesson.id
+    };
   }
 
-  async findAll(currentUser: {id: number, role: UserRole}) {
+  async findByDate(group_id: number, date: string) {
+    const lesson = await this.prisma.lesson.findFirst({
+      where: { group_id, date },
+      include: {
+        attendances: true
+      }
+    });
+    return lesson;
+  }
+
+  async findAll(currentUser: { id: number, role: UserRole }) {
     if (currentUser.role == "ADMIN") {
       return await this.prisma.attendance.findMany({
-        select:{
-          id:true,
+        select: {
+          id: true,
           isPresent: true,
           created_at: true,
           updated_at: true,
@@ -90,61 +97,27 @@ export class AttendancesService {
               full_name: true,
             }
           },
-          lessons: {
-            select: {
-              id: true,
-              topic: true,
-              description: true,
-              groups: {
-                select: {
-                  name: true,
-                  course: {
-                    select: {
-                      name: true
-                    }  
-                  }
-                }
-              }
-            }
-          }
         }
       })
     } else {
       if (currentUser.role == "TEACHER") {
-      return await this.prisma.attendance.findMany({
-        where: {
-          teacher_id: currentUser.id
-        },
-        select:{
-          id:true,
-          isPresent: true,
-          created_at: true,
-          updated_at: true,
-          lessons: {
-            select: {
-              id: true,
-              topic: true,
-              description: true,
-              groups: {
-                select: {
-                  name: true,
-                  course: {
-                    select: {
-                      name: true
-                    }  
-                  }
-                }
-              }
-            }
+        return await this.prisma.attendance.findMany({
+          where: {
+            teacher_id: currentUser.id
+          },
+          select: {
+            id: true,
+            isPresent: true,
+            created_at: true,
+            updated_at: true,
           }
-        }
-      })
-    }
+        })
+      }
     }
   }
 
   findOne(id: number) {
-    
+
   }
 
   update(id: number, updateAttendanceDto: UpdateAttendanceDto) {

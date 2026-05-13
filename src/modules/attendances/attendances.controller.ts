@@ -17,8 +17,18 @@ export class AttendancesController {
   @ApiOperation({ summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}, ${UserRole.TEACHER}` })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @Post()
-  create(@Body() payload: CreateAttendanceDto, @Req() req: Request) {
+  create(@Body() payload: any, @Req() req: Request) {
     return this.attendancesService.create(payload, req['user']);
+  }
+
+  @ApiOperation({ summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}, ${UserRole.TEACHER}` })
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  @Get('by-date')
+  getByDate(@Req() req: Request) {
+    const url = new URL(req.url, 'http://localhost');
+    const group_id = url.searchParams.get('group_id');
+    const date = url.searchParams.get('date');
+    return this.attendancesService.findByDate(Number(group_id), date);
   }
   
   @ApiOperation({ summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}, ${UserRole.TEACHER}` })
