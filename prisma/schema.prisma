@@ -145,6 +145,7 @@ model Groups {
   lessons        Lesson[]
   homeWorks      HomeWork[]
   teachersGroups TeachersGroup[]
+  attendances    Attendance[]
 }
 
 model TeachersGroup {
@@ -179,7 +180,8 @@ model Lesson {
   user_id     Int?
   topic       String?
   description String?
-  date        String   // Sana (masalan: "2024-05-13")
+  type        String?
+  date        DateTime?
   status      Status   @default(active)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
@@ -187,21 +189,21 @@ model Lesson {
   groups      Groups       @relation(fields: [group_id], references: [id])
   teachers    Teachers?    @relation(fields: [teacher_id], references: [id])
   users       User?        @relation(fields: [user_id], references: [id])
-  attendances Attendance[]
   homeWorks   HomeWork[]
 }
 
 model Attendance {
-  id         Int      @id @default(autoincrement())
-  lesson_id  Int
+  id         Int       @id @default(autoincrement())
+  group_id   Int?
   teacher_id Int?
   user_id    Int?
   student_id Int
-  isPresent  Boolean
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now())
+  isPresent  Boolean   @default(true)
+  date       DateTime?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
 
-  lessons  Lesson    @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  groups   Groups?   @relation(fields: [group_id], references: [id])
   teachers Teachers? @relation(fields: [teacher_id], references: [id])
   users    User?     @relation(fields: [user_id], references: [id])
   students Students  @relation(fields: [student_id], references: [id])

@@ -46,7 +46,7 @@ export class LesssonService {
 
   async findAll(currentUser: { id: number; role: UserRole }) {
 
-  if (currentUser.role == UserRole.ADMIN) {
+  if (currentUser.role == UserRole.ADMIN || currentUser.role == UserRole.SUPERADMIN) {
     return await this.prisma.lesson.findMany({
       select:{
         id: true,

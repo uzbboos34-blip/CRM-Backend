@@ -1,1 +1,1 @@
-export class CreateHomeWorkDto {}
+export class CreateHomeWorkDto { }

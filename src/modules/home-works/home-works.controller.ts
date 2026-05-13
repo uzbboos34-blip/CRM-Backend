@@ -7,11 +7,11 @@ import { UpdateHomeWorkDto } from './dto/update-home-work.dto';
 export class HomeWorksController {
   constructor(private readonly homeWorksService: HomeWorksService) {}
 
-  @Post()
-  create(@Body() createHomeWorkDto: CreateHomeWorkDto) {
-    return this.homeWorksService.create(createHomeWorkDto);
-  }
-
+//  @Post()
+//   create(@Body() createHomeWorkDto: CreateHomeWorkDto) {
+//     return this.homeWorksService.create(createHomeWorkDto);
+//   }
+ 
   @Get()
   findAll() {
     return this.homeWorksService.findAll();
