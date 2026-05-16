@@ -9,7 +9,11 @@ import {
   UseGuards,
   Req,
   ParseIntPipe,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
 import { HomeWorksService } from './home-works.service';
 import { CreateHomeWorkDto } from './dto/create-home-work.dto';
 import { UpdateHomeWorkDto } from './dto/update-home-work.dto';
@@ -39,14 +43,39 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 export class HomeWorksController {
   constructor(private readonly homeWorksService: HomeWorksService) {}
 
-  // ─── Yangi uyga vazifa yaratish ─────────────────────────────────────────
   @ApiOperation({
     summary: 'Yangi uyga vazifa yaratish (ADMIN, SUPERADMIN, TEACHER)',
   })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @Post()
-  create(@Body() dto: CreateHomeWorkDto, @Req() req: Request) {
-    return this.homeWorksService.create(dto, req['user']);
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'file', maxCount: 1 },
+        { name: 'video', maxCount: 1 },
+      ],
+      {
+        storage: diskStorage({
+          destination: './src/uploads',
+          filename: (req, file, cb) => {
+            const ext = file.originalname.split('.').pop();
+            const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
+            cb(null, filename);
+          },
+        }),
+      },
+    ),
+  )
+  create(
+    @Body() dto: CreateHomeWorkDto,
+    @Req() req: Request,
+    @UploadedFiles()
+    files: { file?: Express.Multer.File[]; video?: Express.Multer.File[] },
+  ) {
+    const file = files.file?.[0]?.filename;
+    const video = files.video?.[0]?.filename;
+    return this.homeWorksService.create(dto, req['user'], file, video);
   }
 
   // ─── Barcha uyga vazifalar (faqat admin) ─────────────────────────────────

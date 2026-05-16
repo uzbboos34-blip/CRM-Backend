@@ -23,4 +23,9 @@ export class CreateHomeWorkDto {
   @IsOptional()
   @IsString()
   file?: string;
+
+  @ApiProperty({ required: false, description: 'Video nomi / yo\'li' })
+  @IsOptional()
+  @IsString()
+  video_url?: string;
 }

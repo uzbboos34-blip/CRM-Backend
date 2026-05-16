@@ -17,16 +17,21 @@ export class HomeWorksService {
   async create(
     dto: CreateHomeWorkDto,
     currentUser: { id: number; role: UserRole },
+    file?: string,
+    video?: string,
   ) {
+    const groupId = Number(dto.group_id);
+    const lessonId = Number(dto.lesson_id);
+
     // 1. Guruh mavjudligini tekshirish
     const group = await this.prisma.groups.findUnique({
-      where: { id: dto.group_id },
+      where: { id: groupId },
     });
     if (!group) throw new BadRequestException('Guruh topilmadi');
 
     // 2. Lesson mavjudligini va guruhga tegishliligini tekshirish
     const lesson = await this.prisma.lesson.findFirst({
-      where: { id: dto.lesson_id, group_id: dto.group_id },
+      where: { id: lessonId, group_id: groupId },
     });
     if (!lesson)
       throw new BadRequestException(
@@ -36,19 +41,21 @@ export class HomeWorksService {
     // 3. Teacher o'z guruhiga tegishli ekanini tekshirish
     if (currentUser.role === UserRole.TEACHER) {
       const teacherGroup = await this.prisma.teachersGroup.findFirst({
-        where: { teacher_id: currentUser.id, group_id: dto.group_id },
+        where: { teacher_id: currentUser.id, group_id: groupId },
       });
       if (!teacherGroup)
         throw new ForbiddenException("Bu sizning guruhingiz emas");
     }
 
+    // 4. Create HomeWork
     const hw = await this.prisma.homeWork.create({
       data: {
-        lesson_id: dto.lesson_id,
-        group_id: dto.group_id,
+        lesson_id: lessonId,
+        group_id: groupId,
         title: dto.title,
         description: dto.description,
-        file: dto.file,
+        file: file || dto.file,
+        video_url: video || dto.video_url,
         teacher_id: currentUser.role === UserRole.TEACHER ? currentUser.id : null,
         user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
       },
@@ -58,6 +65,20 @@ export class HomeWorksService {
         teachers: { select: { id: true, full_name: true } },
       },
     });
+
+    // 5. If video uploaded, also add to Videos table
+    if (video || dto.video_url) {
+      await this.prisma.videos.create({
+        data: {
+          group_id: groupId,
+          lesson_id: lessonId,
+          title: dto.title + " (Video)",
+          video_url: video || dto.video_url,
+          teacher_id: currentUser.role === UserRole.TEACHER ? currentUser.id : null,
+          user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
+        },
+      });
+    }
 
     return { success: true, message: "Uyga vazifa yaratildi", data: hw };
   }

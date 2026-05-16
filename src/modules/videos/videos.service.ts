@@ -7,11 +7,14 @@ import { UserRole } from '@prisma/client';
 export class VideosService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateVideoDto, currentUser: { id: number; role: UserRole }) {
+  async create(dto: CreateVideoDto, currentUser: { id: number; role: UserRole }, video_file?: string) {
+    const groupId = Number(dto.group_id);
+    const lessonId = dto.lesson_id ? Number(dto.lesson_id) : null;
+
     // 1. Check group access for teacher
     if (currentUser.role === UserRole.TEACHER) {
       const access = await this.prisma.teachersGroup.findFirst({
-        where: { teacher_id: currentUser.id, group_id: dto.group_id },
+        where: { teacher_id: currentUser.id, group_id: groupId },
       });
       if (!access) throw new ForbiddenException("Bu guruhga ruxsatingiz yo'q");
     }
@@ -19,7 +22,11 @@ export class VideosService {
     // 2. Create video
     const data = await this.prisma.videos.create({
       data: {
-        ...dto,
+        title: dto.title,
+        description: dto.description,
+        video_url: video_file || dto.video_url,
+        group_id: groupId,
+        lesson_id: lessonId,
         teacher_id: currentUser.role === UserRole.TEACHER ? currentUser.id : null,
         user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
       },

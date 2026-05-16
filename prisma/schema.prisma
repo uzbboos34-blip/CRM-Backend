@@ -221,6 +221,7 @@ model HomeWork {
   group_id    Int
   title       String
   file        String?
+  video_url   String?
   description String?
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now())
