@@ -20,10 +20,10 @@ export class CreateVideoDto {
   @IsNotEmpty()
   title: string;
 
-  @ApiProperty({ example: 'https://youtube.com/...' })
+  @ApiProperty({ example: 'https://youtube.com/...', required: false })
   @IsString()
-  @IsNotEmpty()
-  video_url: string;
+  @IsOptional()
+  video_url?: string;
 
   @ApiProperty({ example: 'Video haqida...', required: false })
   @IsString()
