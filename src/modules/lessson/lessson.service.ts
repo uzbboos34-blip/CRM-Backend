@@ -44,39 +44,47 @@ export class LesssonService {
     }
   }
 
-  async findAll(currentUser: { id: number; role: UserRole }) {
+  async findAll(currentUser: { id: number; role: UserRole }, group_id?: number) {
+    const where: any = {};
+    if (group_id) where.group_id = group_id;
 
-  if (currentUser.role == UserRole.ADMIN || currentUser.role == UserRole.SUPERADMIN) {
-    return await this.prisma.lesson.findMany({
-      select:{
-        id: true,
-        topic: true,
-        description: true,
-        teachers: {
-          select: {
-            full_name: true,
-          }
+    if (currentUser.role == UserRole.ADMIN || currentUser.role == UserRole.SUPERADMIN) {
+      return await this.prisma.lesson.findMany({
+        where,
+        select: {
+          id: true,
+          group_id: true,
+          topic: true,
+          description: true,
+          teachers: {
+            select: {
+              full_name: true,
+            },
+          },
+          users: {
+            select: {
+              full_name: true,
+            },
+          },
         },
-        users: {
-          select: {
-            full_name: true,
-          }
-        }
-        
-      }
-    });
-  }
+      });
+    }
 
-  if (currentUser.role == UserRole.TEACHER) {
-    return await this.prisma.lesson.findMany({
-      where: {
-      teacher_id: currentUser.id,
-      },
-    });
-  }
+    if (currentUser.role == UserRole.TEACHER) {
+      where.teacher_id = currentUser.id;
+      return await this.prisma.lesson.findMany({
+        where,
+        select: {
+          id: true,
+          group_id: true,
+          topic: true,
+          description: true,
+        },
+      });
+    }
 
-  throw new ForbiddenException(' ');
-}
+    throw new ForbiddenException(' ');
+  }
 
   async findOne(id, currentUser: { id: number; role: UserRole }) {
 

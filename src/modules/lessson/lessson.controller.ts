@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, Put, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe, Put, Req, Query } from '@nestjs/common';
 import { LesssonService } from './lessson.service';
 import { CreateLesssonDto } from './dto/create-lessson.dto';
 import { UpdateLesssonDto } from './dto/update-lessson.dto';
@@ -25,8 +25,8 @@ export class LesssonController {
   @ApiOperation({ summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}, ${UserRole.TEACHER}` })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @Get()
-  findAll(@Req() req: Request) {
-    return this.lesssonService.findAll(req['user']);
+  findAll(@Req() req: Request, @Query('group_id') group_id?: string) {
+    return this.lesssonService.findAll(req['user'], group_id ? +group_id : undefined);
   }
   @ApiOperation({ summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}, ${UserRole.TEACHER}` })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
