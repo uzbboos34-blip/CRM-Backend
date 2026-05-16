@@ -1,15 +1,18 @@
 import { IsInt, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 export class CreateVideoDto {
   @ApiProperty({ example: 1 })
   @IsInt()
   @IsNotEmpty()
+  @Type(() => Number)
   group_id: number;
 
   @ApiProperty({ example: 1, required: false })
   @IsInt()
   @IsOptional()
+  @Type(() => Number)
   lesson_id?: number;
 
   @ApiProperty({ example: 'Dars videosi' })

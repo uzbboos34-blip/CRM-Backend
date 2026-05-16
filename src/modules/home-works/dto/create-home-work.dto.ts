@@ -1,13 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateHomeWorkDto {
   @ApiProperty({ description: 'Dars (lesson) ID' })
   @IsInt()
+  @Type(() => Number)
   lesson_id: number;
 
   @ApiProperty({ description: 'Guruh ID' })
   @IsInt()
+  @Type(() => Number)
   group_id: number;
 
   @ApiProperty({ description: 'Vazifa sarlavhasi' })
