@@ -21,7 +21,7 @@ import { TokenGuard } from 'src/common/guards/token.guards';
 import { RolesGuard } from 'src/common/guards/role.guards';
 import { Roles } from 'src/common/decorators/roles';
 import { UserRole } from '@prisma/client';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 /**
  * Ruxsatlar:
