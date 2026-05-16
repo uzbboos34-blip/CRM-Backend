@@ -17,13 +17,14 @@ export class VideosService {
     }
 
     // 2. Create video
-    return await this.prisma.videos.create({
+    const data = await this.prisma.videos.create({
       data: {
         ...dto,
         teacher_id: currentUser.role === UserRole.TEACHER ? currentUser.id : null,
         user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
       },
     });
+    return { success: true, data };
   }
 
   async findAllByGroup(groupId: number, currentUser: { id: number; role: UserRole }) {
@@ -35,13 +36,15 @@ export class VideosService {
       if (!access) throw new ForbiddenException("Bu guruhga ruxsatingiz yo'q");
     }
 
-    return await this.prisma.videos.findMany({
+    const videos = await this.prisma.videos.findMany({
       where: { group_id: groupId },
       orderBy: { created_at: 'desc' },
       include: {
         lessons: { select: { id: true, topic: true } },
       },
     });
+
+    return { success: true, data: videos };
   }
 
   async remove(id: number, currentUser: { id: number; role: UserRole }) {
@@ -55,6 +58,7 @@ export class VideosService {
       }
     }
 
-    return await this.prisma.videos.delete({ where: { id } });
+    await this.prisma.videos.delete({ where: { id } });
+    return { success: true, message: "Video o'chirildi" };
   }
 }
