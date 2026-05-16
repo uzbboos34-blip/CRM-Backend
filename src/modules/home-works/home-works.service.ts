@@ -7,7 +7,7 @@ import {
 import { CreateHomeWorkDto } from './dto/create-home-work.dto';
 import { UpdateHomeWorkDto } from './dto/update-home-work.dto';
 import { PrismaService } from 'src/core/database/prisma.service';
-import { UserRole } from '@prisma/client';
+import { UserRole, Status } from '@prisma/client';
 
 @Injectable()
 export class HomeWorksService {
@@ -67,13 +67,13 @@ export class HomeWorksService {
     groupId: number,
     currentUser: { id: number; role: UserRole },
   ) {
-    // Guruh mavjudligini tekshirish
+    // 1. Guruh mavjudligini tekshirish
     const group = await this.prisma.groups.findUnique({
       where: { id: groupId },
     });
     if (!group) throw new NotFoundException('Guruh topilmadi');
 
-    // Teacher faqat o'z guruhini ko'radi
+    // 2. Teacher faqat o'z guruhini ko'radi
     if (currentUser.role === UserRole.TEACHER) {
       const teacherGroup = await this.prisma.teachersGroup.findFirst({
         where: { teacher_id: currentUser.id, group_id: groupId },
@@ -82,28 +82,47 @@ export class HomeWorksService {
         throw new ForbiddenException("Bu sizning guruhingiz emas");
     }
 
+    // 3. Homeworks fetch with nested counts
     const homeworks = await this.prisma.homeWork.findMany({
       where: { group_id: groupId },
       orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        file: true,
-        created_at: true,
-        lessons: {
+      include: {
+        lessons: { select: { id: true, topic: true, date: true } },
+        _count: { select: { homeWorkAnswers: true } },
+        homeWorkAnswers: {
           select: {
             id: true,
-            topic: true,
-            date: true,
+            homeWorkResults: { select: { id: true } },
           },
         },
-        groups: { select: { id: true, name: true } },
-        teachers: { select: { id: true, full_name: true } },
       },
     });
 
-    return { success: true, data: homeworks };
+    // 4. Total students in group
+    const totalStudents = await this.prisma.studentGroup.count({
+      where: { group_id: groupId, status: Status.active },
+    });
+
+    // 5. Map stats
+    const data = homeworks.map((hw) => {
+      const submitted = hw._count.homeWorkAnswers;
+      const graded = hw.homeWorkAnswers.reduce(
+        (acc, curr) => acc + (curr.homeWorkResults.length > 0 ? 1 : 0),
+        0,
+      );
+
+      return {
+        ...hw,
+        stats: {
+          totalStudents,
+          submitted,
+          graded,
+          pending: submitted - graded,
+        },
+      };
+    });
+
+    return { success: true, data };
   }
 
   // ─── FIND ALL (admin uchun — barcha) ───────────────────────────────────────
