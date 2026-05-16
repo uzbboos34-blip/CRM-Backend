@@ -69,29 +69,47 @@ export class AttendancesService {
     });
 
     if (existingLesson) {
-      throw new BadRequestException(`Bu kun (${date}) uchun davomat allaqachon olingan`);
+      if (currentUser.role === UserRole.TEACHER) {
+        throw new BadRequestException(`Bu kun (${date}) uchun davomat allaqachon olingan`);
+      }
+      
+      // Admin yoki SuperAdmin bo'lsa update qilish
+      await this.prisma.lesson.update({
+        where: { id: existingLesson.id },
+        data: {
+          topic,
+          type,
+        }
+      });
+
+      // Eski davomatlarni o'chirib yuborish
+      await this.prisma.attendance.deleteMany({
+        where: {
+          group_id,
+          date: { gte: startOfDay, lte: endOfDay }
+        }
+      });
+    } else {
+      // 4. Lesson yaratish (mavzu saqlash uchun)
+      await this.prisma.lesson.create({
+        data: {
+          group_id,
+          topic,
+          type,
+          date: lessonDate,
+          teacher_id: currentUser.role === UserRole.TEACHER ? currentUser.id : null,
+          user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
+        }
+      });
     }
 
-    // 4. Lesson yaratish (mavzu saqlash uchun)
-    await this.prisma.lesson.create({
-      data: {
-        group_id,
-        topic,
-        type,
-        date: lessonDate,
-        teacher_id: currentUser.role === UserRole.TEACHER ? currentUser.id : null,
-        user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
-      }
-    });
-
-    // 5. Faqat KELGAN (present=true) studentlarni Attendance'ga yozish
-    const presentStudents = records.filter(r => r.present);
-    if (presentStudents.length > 0) {
+    // 5. Barcha studentlarni Attendance'ga yozish (ham kelgan, ham kelmagan)
+    if (records.length > 0) {
       await this.prisma.attendance.createMany({
-        data: presentStudents.map(r => ({
+        data: records.map(r => ({
           group_id,
           student_id: r.student_id,
-          isPresent: true,
+          isPresent: r.present,
           date: lessonDate,
           teacher_id: currentUser.role === UserRole.TEACHER ? currentUser.id : null,
           user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
@@ -99,11 +117,12 @@ export class AttendancesService {
       });
     }
 
+    const presentCount = records.filter(r => r.present).length;
     return {
       success: true,
-      message: 'Davomat muvaffaqiyatli saqlandi',
-      present_count: presentStudents.length,
-      absent_count: records.length - presentStudents.length,
+      message: existingLesson ? 'Davomat muvaffaqiyatli yangilandi' : 'Davomat muvaffaqiyatli saqlandi',
+      present_count: presentCount,
+      absent_count: records.length - presentCount,
     };
   }
 
