@@ -61,6 +61,7 @@ model User {
   attendances     Attendance[]
   homeWorks       HomeWork[]
   homeWorkResults HomeWorkResult[]
+  videos          Videos[]
 }
 
 model Students {
@@ -97,6 +98,7 @@ model Teachers {
   homeWorks       HomeWork[]
   homeWorkResults HomeWorkResult[]
   teachersGroups  TeachersGroup[]
+  videos          Videos[]
 }
 
 model Courses {
@@ -146,6 +148,7 @@ model Groups {
   homeWorks      HomeWork[]
   teachersGroups TeachersGroup[]
   attendances    Attendance[]
+  videos         Videos[]
 }
 
 model TeachersGroup {
@@ -190,6 +193,7 @@ model Lesson {
   teachers    Teachers?    @relation(fields: [teacher_id], references: [id])
   users       User?        @relation(fields: [user_id], references: [id])
   homeWorks   HomeWork[]
+  videos      Videos[]
 }
 
 model Attendance {
@@ -256,3 +260,22 @@ model HomeWorkResult {
   users           User?          @relation(fields: [user_id], references: [id])
   homeWorkAnswers HomeWorkAnswer @relation(fields: [homework_answer_id], references: [id])
 }
+
+model Videos {
+  id          Int      @id @default(autoincrement())
+  lesson_id   Int?
+  group_id    Int
+  teacher_id  Int?
+  user_id     Int?
+  title       String
+  video_url   String
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
+
+  lessons  Lesson?   @relation(fields: [lesson_id], references: [id])
+  groups   Groups    @relation(fields: [group_id], references: [id])
+  teachers Teachers? @relation(fields: [teacher_id], references: [id])
+  users    User?     @relation(fields: [user_id], references: [id])
+}
+

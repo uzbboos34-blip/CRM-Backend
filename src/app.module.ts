@@ -13,6 +13,7 @@ import { EmailModule } from './common/email/email.module';
 import { LesssonModule } from './modules/lessson/lessson.module';
 import { AttendancesModule } from './modules/attendances/attendances.module';
 import { HomeWorksModule } from './modules/home-works/home-works.module';
+import { VideosModule } from './modules/videos/videos.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { HomeWorksModule } from './modules/home-works/home-works.module';
     LesssonModule,
     AttendancesModule,
     HomeWorksModule,
+    VideosModule,
   ],
 })
 export class AppModule {}
