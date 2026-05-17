@@ -44,6 +44,13 @@ enum WeekDay {
   Sunday
 }
 
+enum HomeworkStatus {
+  PENDING
+  ACCEPTED
+  RETURNED
+  NOT_DONE
+}
+
 model User {
   id         Int      @id @default(autoincrement())
   full_name  String
@@ -239,6 +246,7 @@ model HomeWorkAnswer {
   homwork_id Int
   title      String
   file       String?
+  homeworkStatus HomeworkStatus @default(PENDING)
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
 
