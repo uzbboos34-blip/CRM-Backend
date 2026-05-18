@@ -1,4 +1,7 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Req, ParseIntPipe, UseInterceptors, UploadedFile } from '@nestjs/common';
+import {
+  Controller, Get, Post, Body, Param, Delete,
+  UseGuards, Req, ParseIntPipe, UseInterceptors, UploadedFile
+} from '@nestjs/common';
 import { VideosService } from './videos.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { TokenGuard } from 'src/common/guards/token.guards';
@@ -36,7 +39,7 @@ export class VideosController {
     @Req() req: any,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.videosService.create(dto, req.user, file?.filename);
+    return this.videosService.create(dto, req.user, file?.filename, file?.size);
   }
 
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)

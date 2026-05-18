@@ -187,9 +187,8 @@ export class StudentsService {
     if (filename) {
       if (student.photo) {
         const filePath = join(process.cwd(), 'src', 'uploads', student.photo);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
+
+        await fs.unlinkSync(filePath);
       }
       photo = filename;
     }
@@ -217,18 +216,16 @@ export class StudentsService {
     if (payload.birth_date) {
       birth_date = new Date(payload.birth_date);
     }
-    const { groups, password, birth_date: payloadBirthDate, ...restPayload } = payload;
-
     await this.prisma.students.update({
       where: { id },
       data: {
-        ...restPayload,
+        ...payload,
         photo,
-        ...(passHash ? { password: passHash } : {}),
-        ...(birth_date ? { birth_date } : {}),
-        studentGroups: groups ? {
+        password: passHash,
+        birth_date,
+        studentGroups: payload.groups?.length ? {
           deleteMany: {},
-          create: groups.map((groupId) => ({
+          create: payload.groups?.map((groupId) => ({
             group_id: groupId,
           })),
         } : undefined,

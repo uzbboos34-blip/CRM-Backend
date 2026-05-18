@@ -2,12 +2,19 @@ import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/commo
 import { PrismaService } from 'src/core/database/prisma.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { UserRole } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class VideosService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateVideoDto, currentUser: { id: number; role: UserRole }, video_file?: string) {
+  async create(
+    dto: CreateVideoDto,
+    currentUser: { id: number; role: UserRole },
+    video_file?: string,
+    file_size?: number,
+  ) {
     const groupId = Number(dto.group_id);
     const lessonId = dto.lesson_id ? Number(dto.lesson_id) : null;
 
@@ -19,16 +26,32 @@ export class VideosService {
       if (!access) throw new ForbiddenException("Bu guruhga ruxsatingiz yo'q");
     }
 
-    // 2. Create video
+    // 2. Get actual file size if saved to disk
+    let actualSize: bigint | null = null;
+    if (video_file) {
+      const filePath = path.join('./src/uploads', video_file);
+      try {
+        const stat = fs.statSync(filePath);
+        actualSize = BigInt(stat.size);
+      } catch {
+        actualSize = file_size ? BigInt(file_size) : null;
+      }
+    }
+
+    // 3. Create video
     const data = await this.prisma.videos.create({
       data: {
         title: dto.title,
         description: dto.description,
-        video_url: video_file || dto.video_url,
+        video_url: video_file || dto.video_url || '',
+        file_size: actualSize,
         group_id: groupId,
         lesson_id: lessonId,
         teacher_id: currentUser.role === UserRole.TEACHER ? currentUser.id : null,
         user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
+      },
+      include: {
+        lessons: { select: { id: true, topic: true, date: true } },
       },
     });
     return { success: true, data };
@@ -47,11 +70,17 @@ export class VideosService {
       where: { group_id: groupId },
       orderBy: { created_at: 'desc' },
       include: {
-        lessons: { select: { id: true, topic: true } },
+        lessons: { select: { id: true, topic: true, date: true } },
       },
     });
 
-    return { success: true, data: videos };
+    // Convert BigInt to string for JSON serialization
+    const serialized = videos.map(v => ({
+      ...v,
+      file_size: v.file_size ? v.file_size.toString() : null,
+    }));
+
+    return { success: true, data: serialized };
   }
 
   async remove(id: number, currentUser: { id: number; role: UserRole }) {
@@ -63,6 +92,12 @@ export class VideosService {
       if (video.teacher_id !== currentUser.id) {
         throw new ForbiddenException("Siz bu videoni o'chira olmaysiz");
       }
+    }
+
+    // Delete physical file if exists
+    if (video.video_url && !video.video_url.startsWith('http')) {
+      const filePath = path.join('./src/uploads', video.video_url);
+      try { fs.unlinkSync(filePath); } catch { /* ignore */ }
     }
 
     await this.prisma.videos.delete({ where: { id } });

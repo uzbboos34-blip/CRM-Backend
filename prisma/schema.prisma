@@ -278,6 +278,7 @@ model Videos {
   user_id     Int?
   title       String
   video_url   String
+  file_size   BigInt?
   description String?
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now())
