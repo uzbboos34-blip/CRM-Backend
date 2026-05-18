@@ -54,7 +54,13 @@ export class VideosService {
         lessons: { select: { id: true, topic: true, date: true } },
       },
     });
-    return { success: true, data };
+    return {
+      success: true,
+      data: {
+        ...data,
+        file_size: data.file_size ? data.file_size.toString() : null,
+      },
+    };
   }
 
   async findAllByGroup(groupId: number, currentUser: { id: number; role: UserRole }) {
