@@ -150,6 +150,10 @@ export class GroupsService {
 
     if (query.status) {
       where.status = query.status;
+    } else {
+      where.status = {
+        in: [GroupStatus.active, GroupStatus.planned]
+      };
     }
 
     if (query.name) {
@@ -192,6 +196,11 @@ export class GroupsService {
         status: true,
 
         teachersGroups: {
+          where: {
+            teacher: {
+              status: Status.active
+            }
+          },
           select: {
             teacher: {
               select: {
@@ -203,6 +212,13 @@ export class GroupsService {
         },
 
         studentGroups: {
+          where: {
+            students: {
+              status: StudentStatus.inactive ? {
+                not: StudentStatus.inactive
+              } : undefined
+            }
+          },
           select: {
             students: {
               select: {

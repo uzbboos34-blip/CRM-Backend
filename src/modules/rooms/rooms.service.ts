@@ -38,6 +38,8 @@ export class RoomsService {
 
     if (query.status) {
       where.status = query.status;
+    } else {
+      where.status = Status.active;
     }
 
     if (query.name) {

@@ -86,6 +86,8 @@ export class TeachersService {
 
     if (query.status) {
       where.status = query.status;
+    } else {
+      where.status = Status.active;
     }
 
     if (query.full_name) {

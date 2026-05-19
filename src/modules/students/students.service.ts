@@ -89,6 +89,8 @@ export class StudentsService {
 
     if (query.status) {
       where.status = query.status;
+    } else {
+      where.status = StudentStatus.active;
     }
 
     if (query.full_name) {
