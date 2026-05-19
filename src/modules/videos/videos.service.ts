@@ -4,17 +4,19 @@ import { CreateVideoDto } from './dto/create-video.dto';
 import { UserRole } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
-import { createClient } from '@supabase/supabase-js';
-
-// Supabase client initialize
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_KEY || ''
-);
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class VideosService {
-  constructor(private prisma: PrismaService) {}
+  private supabase: SupabaseClient;
+
+  constructor(private prisma: PrismaService) {
+    // Supabase faqatgina NestJS xizmatlari to'liq ishga tushganda yaratiladi
+    this.supabase = createClient(
+      process.env.SUPABASE_URL || '',
+      process.env.SUPABASE_KEY || ''
+    );
+  }
 
   async create(
     dto: CreateVideoDto,
@@ -54,7 +56,7 @@ export class VideosService {
         else if (ext === '.mkv') contentType = 'video/x-matroska';
 
         // Upload to Supabase Storage
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await this.supabase.storage
           .from('videos')
           .upload(video_file, fileBuffer, {
             contentType,
@@ -66,7 +68,7 @@ export class VideosService {
         }
 
         // Get public URL
-        const { data: publicUrlData } = supabase.storage
+        const { data: publicUrlData } = this.supabase.storage
           .from('videos')
           .getPublicUrl(video_file);
 
@@ -157,7 +159,7 @@ export class VideosService {
         const parts = video.video_url.split('/');
         const filename = parts[parts.length - 1];
         if (filename) {
-          await supabase.storage.from('videos').remove([filename]);
+          await this.supabase.storage.from('videos').remove([filename]);
         }
       } catch (e) {
         console.error('Supabase-dan faylni o\'chirishda xatolik:', e);
