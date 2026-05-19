@@ -51,6 +51,13 @@ enum HomeworkStatus {
   NOT_DONE
 }
 
+enum ExamStatus {
+  PENDING
+  ACCEPTED
+  RETURNED
+  NOT_DONE
+}
+
 model User {
   id         Int      @id @default(autoincrement())
   full_name  String
@@ -69,6 +76,7 @@ model User {
   homeWorks       HomeWork[]
   homeWorkResults HomeWorkResult[]
   videos          Videos[]
+  exams           Exam[]
 }
 
 model Students {
@@ -86,6 +94,7 @@ model Students {
   studentGroups   StudentGroup[]
   attendances     Attendance[]
   homeWorkAnswers HomeWorkAnswer[]
+  examAnswers     ExamAnswer[]
 }
 
 model Teachers {
@@ -106,6 +115,7 @@ model Teachers {
   homeWorkResults HomeWorkResult[]
   teachersGroups  TeachersGroup[]
   videos          Videos[]
+  exams           Exam[]
 }
 
 model Courses {
@@ -156,6 +166,7 @@ model Groups {
   teachersGroups TeachersGroup[]
   attendances    Attendance[]
   videos         Videos[]
+  exams          Exam[]
 }
 
 model TeachersGroup {
@@ -289,3 +300,43 @@ model Videos {
   users    User?     @relation(fields: [user_id], references: [id])
 }
 
+// ============================================
+// EXAMINATIONS MODULE
+// ============================================
+
+model Exam {
+  id             Int      @id @default(autoincrement())
+  group_id       Int
+  teacher_id     Int?
+  user_id        Int?
+  title          String
+  description    String?
+  start_date     DateTime? // Imtihon boshlanish vaqti
+  end_date       DateTime? // Imtihon tugash vaqti
+  is_published   Boolean  @default(false) // Natijalar e'lon qilinganmi?
+  published_at   DateTime? // E'lon qilingan vaqt
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  groups       Groups       @relation(fields: [group_id], references: [id])
+  teachers     Teachers?    @relation(fields: [teacher_id], references: [id])
+  users        User?        @relation(fields: [user_id], references: [id])
+  examAnswers  ExamAnswer[]
+}
+
+model ExamAnswer {
+  id           Int        @id @default(autoincrement())
+  student_id   Int
+  exam_id      Int
+  title        String?
+  file         String?
+  examStatus   ExamStatus @default(PENDING)
+  score        Int?       @default(0)
+  feedback     String?
+  checked_at   DateTime?
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+
+  students     Students   @relation(fields: [student_id], references: [id])
+  exams        Exam       @relation(fields: [exam_id], references: [id])
+}

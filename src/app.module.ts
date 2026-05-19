@@ -14,6 +14,7 @@ import { LesssonModule } from './modules/lessson/lessson.module';
 import { AttendancesModule } from './modules/attendances/attendances.module';
 import { HomeWorksModule } from './modules/home-works/home-works.module';
 import { VideosModule } from './modules/videos/videos.module';
+import { ExamsModule } from './modules/exams/exams.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { VideosModule } from './modules/videos/videos.module';
     AttendancesModule,
     HomeWorksModule,
     VideosModule,
+    ExamsModule,
   ],
 })
 export class AppModule {}
