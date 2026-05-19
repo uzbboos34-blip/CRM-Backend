@@ -213,10 +213,9 @@ export class GroupsService {
 
         studentGroups: {
           where: {
+            status: Status.active,
             students: {
-              status: StudentStatus.inactive ? {
-                not: StudentStatus.inactive
-              } : undefined
+              status: 'active'
             }
           },
           select: {
@@ -255,7 +254,7 @@ export class GroupsService {
       max_students: group.max_students,
       status: group.status,
       teachers: group.teachersGroups?.map((g) => g.teacher) || [],
-      students: group.studentGroups?.length || [],
+      students: group.studentGroups?.length || 0,
       course: group.course.name,
       course_duration: group.course.duration_hours,
       rooms: group.rooms.name
@@ -269,6 +268,9 @@ export class GroupsService {
         rooms: true,
         course: true,
         teachersGroups: {
+          where: {
+            teacher: { status: 'active' }
+          },
           include: {
             teacher: {
               select: {
@@ -280,6 +282,10 @@ export class GroupsService {
           }
         },
         studentGroups: {
+          where: {
+            students: { status: 'active' },
+            status: 'active'
+          },
           include: {
             students: true
           }
@@ -294,7 +300,10 @@ export class GroupsService {
     const groupStudentsCount = await this.prisma.studentGroup.count({
       where: {
         group_id: id,
-        status: Status.active
+        status: Status.active,
+        students: {
+          status: 'active'
+        }
       }
     });
 
@@ -393,7 +402,7 @@ export class GroupsService {
       const teacher = await this.prisma.teachers.findMany({
         where: {
           id: { in: payload.teachers },
-          status: GroupStatus.active
+          status: Status.active
         },
       });
 
@@ -406,7 +415,7 @@ export class GroupsService {
       const course = await this.prisma.courses.findFirst({
         where: {
           id: payload.course_id,
-          status: GroupStatus.active
+          status: Status.active
         },
       });
 
@@ -419,7 +428,7 @@ export class GroupsService {
       const room = await this.prisma.rooms.findFirst({
         where: {
           id: payload.room_id,
-          status: GroupStatus.active,
+          status: Status.active,
         },
       });
 

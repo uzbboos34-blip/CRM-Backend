@@ -106,7 +106,11 @@ export class HomeWorksService {
     });
 
     const totalStudents = await this.prisma.studentGroup.count({
-      where: { group_id: groupId, status: Status.active },
+      where: {
+        group_id: groupId,
+        status: Status.active,
+        students: { status: 'active' }
+      },
     });
 
     const data = homeworks.map((hw) => {
@@ -204,7 +208,11 @@ export class HomeWorksService {
 
     // Guruhning barcha active studentlari
     const studentGroups = await this.prisma.studentGroup.findMany({
-      where: { group_id: hw.group_id, status: Status.active },
+      where: {
+        group_id: hw.group_id,
+        status: Status.active,
+        students: { status: 'active' }
+      },
       include: {
         students: {
           select: { id: true, full_name: true, photo: true, phone: true },
@@ -439,7 +447,12 @@ export class HomeWorksService {
 
     // Check student is in this group
     const sg = await this.prisma.studentGroup.findFirst({
-      where: { student_id: studentId, group_id: hw.group_id, status: Status.active },
+      where: {
+        student_id: studentId,
+        group_id: hw.group_id,
+        status: Status.active,
+        students: { status: 'active' }
+      },
     });
     if (!sg) throw new ForbiddenException('Siz bu guruhga tegishli emassiz');
 

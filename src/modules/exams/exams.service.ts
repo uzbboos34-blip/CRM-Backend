@@ -42,7 +42,12 @@ export class ExamsService {
       if (!access) throw new ForbiddenException("Siz bu guruhga dars bermaysiz");
     } else if (currentUser.role === UserRole.STUDENT) {
       const access = await this.prisma.studentGroup.findFirst({
-        where: { student_id: currentUser.id, group_id: groupId },
+        where: {
+          student_id: currentUser.id,
+          group_id: groupId,
+          status: 'active',
+          students: { status: 'active' }
+        },
       });
       if (!access) throw new ForbiddenException("Siz bu guruhda o'qimaysiz");
     }
@@ -99,7 +104,11 @@ export class ExamsService {
 
     // Fetch all students in the group
     const studentGroups = await this.prisma.studentGroup.findMany({
-      where: { group_id: exam.group_id },
+      where: {
+        group_id: exam.group_id,
+        status: 'active',
+        students: { status: 'active' },
+      },
       include: { students: { select: { id: true, full_name: true, phone: true } } },
     });
 
