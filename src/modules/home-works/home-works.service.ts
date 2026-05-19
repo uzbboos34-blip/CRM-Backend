@@ -8,6 +8,7 @@ import { CreateHomeWorkDto } from './dto/create-home-work.dto';
 import { UpdateHomeWorkDto } from './dto/update-home-work.dto';
 import { PrismaService } from 'src/core/database/prisma.service';
 import { UserRole, Status, HomeworkStatus } from '@prisma/client';
+import { uploadToSupabase } from 'src/core/utils/supabase-upload';
 
 @Injectable()
 export class HomeWorksService {
@@ -42,6 +43,13 @@ export class HomeWorksService {
 
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, groupId);
+    }
+
+    if (file) {
+      await uploadToSupabase(file);
+    }
+    if (video) {
+      await uploadToSupabase(video);
     }
 
     const hw = await this.prisma.homeWork.create({
@@ -460,6 +468,12 @@ export class HomeWorksService {
     const existing = await this.prisma.homeWorkAnswer.findFirst({
       where: { homwork_id: hwId, student_id: studentId },
     });
+
+    if (files && files.length > 0) {
+      for (const file of files) {
+        await uploadToSupabase(file);
+      }
+    }
 
     const fileJson = JSON.stringify(files);
 

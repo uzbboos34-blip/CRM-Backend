@@ -4,11 +4,30 @@ import { ApiTags, DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Get, ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { join } from 'path';
+import * as fs from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
-  app.use('/file', express.static(join(process.cwd(), 'src', 'uploads')));
+  
+  app.use('/file', (req, res, next) => {
+    const filename = req.path.replace(/^\//, '');
+    if (!filename) {
+      return res.status(404).send('File not found');
+    }
+    const localPath = join(process.cwd(), 'src', 'uploads', filename);
+    if (fs.existsSync(localPath)) {
+      return res.sendFile(localPath);
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL;
+    if (supabaseUrl) {
+      const redirectUrl = `${supabaseUrl}/storage/v1/object/public/NajotEdu/${filename}`;
+      return res.redirect(redirectUrl);
+    }
+
+    return res.status(404).send('File not found');
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

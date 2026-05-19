@@ -2,6 +2,10 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from 'src/core/database/prisma.service';
 import { CreateExamDto } from './dto/create-exam.dto';
 import { UserRole, ExamStatus } from '@prisma/client';
+import { uploadToSupabase } from 'src/core/utils/supabase-upload';
+import { join } from 'path';
+import * as fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class ExamsService {
@@ -15,6 +19,10 @@ export class ExamsService {
         where: { teacher_id: currentUser.id, group_id: dto.group_id },
       });
       if (!access) throw new ForbiddenException("Siz bu guruhga dars bermaysiz");
+    }
+
+    if (file) {
+      await uploadToSupabase(file);
     }
 
     const exam = await this.prisma.exam.create({
@@ -234,6 +242,22 @@ export class ExamsService {
       if (!access) throw new ForbiddenException("Ruxsat yo'q");
     }
 
+    if (data.file) {
+      if (exam.file) {
+        const filePath = join(process.cwd(), 'src', 'uploads', exam.file);
+        try { fs.unlinkSync(filePath); } catch {}
+        const url = process.env.SUPABASE_URL;
+        const key = process.env.SUPABASE_KEY;
+        if (url && key) {
+          try {
+            const supabase = createClient(url, key);
+            await supabase.storage.from('NajotEdu').remove([exam.file]);
+          } catch {}
+        }
+      }
+      await uploadToSupabase(data.file);
+    }
+
     const updated = await this.prisma.exam.update({
       where: { id: examId },
       data: {
@@ -258,6 +282,20 @@ export class ExamsService {
         where: { teacher_id: currentUser.id, group_id: exam.group_id },
       });
       if (!access) throw new ForbiddenException("Ruxsat yo'q");
+    }
+
+    // Delete physical/remote files
+    if (exam.file) {
+      const filePath = join(process.cwd(), 'src', 'uploads', exam.file);
+      try { fs.unlinkSync(filePath); } catch {}
+      const url = process.env.SUPABASE_URL;
+      const key = process.env.SUPABASE_KEY;
+      if (url && key) {
+        try {
+          const supabase = createClient(url, key);
+          await supabase.storage.from('NajotEdu').remove([exam.file]);
+        } catch {}
+      }
     }
 
     // First delete all submissions under this exam

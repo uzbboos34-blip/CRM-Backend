@@ -12,6 +12,8 @@ import { join } from 'path';
 import fs from 'fs';
 import { EmailService } from 'src/common/email/email.service';
 import { Prisma, Status } from '@prisma/client';
+import { uploadToSupabase } from 'src/core/utils/supabase-upload';
+import { createClient } from '@supabase/supabase-js';
 @Injectable()
 export class TeachersService {
   constructor(
@@ -56,6 +58,10 @@ export class TeachersService {
         throw new NotFoundException('Guruhlardan biri topilmadi');
       }
     }
+    if (filename) {
+      await uploadToSupabase(filename);
+    }
+
     const passHash = await bcrypt.hash(payload.password, 10);
 
     await this.prisma.teachers.create({
@@ -233,10 +239,20 @@ export class TeachersService {
     if (filename) {
       if (teacher.photo) {
         const filePath = join(process.cwd(), 'src', 'uploads', teacher.photo);
-        console.log();
+        try {
+          fs.unlinkSync(filePath);
+        } catch {}
 
-        await fs.unlinkSync(filePath);
+        const url = process.env.SUPABASE_URL;
+        const key = process.env.SUPABASE_KEY;
+        if (url && key) {
+          try {
+            const supabase = createClient(url, key);
+            await supabase.storage.from('NajotEdu').remove([teacher.photo]);
+          } catch {}
+        }
       }
+      await uploadToSupabase(filename);
       photo = filename;
     }
 

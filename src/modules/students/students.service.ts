@@ -11,6 +11,8 @@ import { join } from 'path';
 import fs from 'fs';
 import { EmailService } from 'src/common/email/email.service';
 import { StudentStatus } from '@prisma/client';
+import { uploadToSupabase } from 'src/core/utils/supabase-upload';
+import { createClient } from '@supabase/supabase-js';
 @Injectable()
 export class StudentsService {
   constructor(
@@ -54,6 +56,10 @@ export class StudentsService {
       if (groups.length !== payload.groups.length) {
         throw new NotFoundException('Guruhlardan biri topilmadi');
       }
+    }
+
+    if (filename) {
+      await uploadToSupabase(filename);
     }
 
     const passHash = await bcrypt.hash(payload.password, 10);
@@ -192,9 +198,20 @@ export class StudentsService {
     if (filename) {
       if (student.photo) {
         const filePath = join(process.cwd(), 'src', 'uploads', student.photo);
+        try {
+          fs.unlinkSync(filePath);
+        } catch {}
 
-        await fs.unlinkSync(filePath);
+        const url = process.env.SUPABASE_URL;
+        const key = process.env.SUPABASE_KEY;
+        if (url && key) {
+          try {
+            const supabase = createClient(url, key);
+            await supabase.storage.from('NajotEdu').remove([student.photo]);
+          } catch {}
+        }
       }
+      await uploadToSupabase(filename);
       photo = filename;
     }
     let groupIds: number[] = [];
