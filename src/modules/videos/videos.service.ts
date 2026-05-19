@@ -64,9 +64,9 @@ export class VideosService {
         // Lazy initialization
         const supabase = this.getSupabaseClient();
 
-        // Upload to Supabase Storage
+        // Upload to Supabase Storage using 'NajotEdu' bucket
         const { error: uploadError } = await supabase.storage
-          .from('videos')
+          .from('NajotEdu')
           .upload(video_file, fileBuffer, {
             contentType,
             duplex: 'half',
@@ -78,7 +78,7 @@ export class VideosService {
 
         // Get public URL
         const { data: publicUrlData } = supabase.storage
-          .from('videos')
+          .from('NajotEdu')
           .getPublicUrl(video_file);
 
         finalUrl = publicUrlData.publicUrl;
@@ -171,7 +171,7 @@ export class VideosService {
         const parts = video.video_url.split('/');
         const filename = parts[parts.length - 1];
         if (filename) {
-          await supabase.storage.from('videos').remove([filename]);
+          await supabase.storage.from('NajotEdu').remove([filename]);
         }
       } catch (e) {
         console.error('Supabase-dan faylni o\'chirishda xatolik:', e);
