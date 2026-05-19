@@ -311,6 +311,7 @@ model Exam {
   user_id        Int?
   title          String
   description    String?
+  file           String?
   start_date     DateTime? // Imtihon boshlanish vaqti
   end_date       DateTime? // Imtihon tugash vaqti
   is_published   Boolean  @default(false) // Natijalar e'lon qilinganmi?

@@ -8,7 +8,7 @@ export class ExamsService {
   constructor(private readonly prisma: PrismaService) {}
 
   // 1. Yangi imtihon yaratish
-  async create(dto: CreateExamDto, currentUser: any) {
+  async create(dto: CreateExamDto, currentUser: any, file?: string) {
     // Check access
     if (currentUser.role === UserRole.TEACHER) {
       const access = await this.prisma.teachersGroup.findFirst({
@@ -21,6 +21,7 @@ export class ExamsService {
       data: {
         title: dto.title,
         description: dto.description,
+        file: file || null,
         group_id: dto.group_id,
         start_date: dto.start_date ? new Date(dto.start_date) : null,
         end_date: dto.end_date ? new Date(dto.end_date) : null,
@@ -96,13 +97,72 @@ export class ExamsService {
       orderBy: { created_at: 'desc' },
     });
 
-    return { success: true, data: submissions, exam };
+    // Fetch all students in the group
+    const studentGroups = await this.prisma.studentGroup.findMany({
+      where: { group_id: exam.group_id },
+      include: { students: { select: { id: true, full_name: true, phone: true } } },
+    });
+
+    const result = studentGroups.map(sg => {
+      const sub = submissions.find(s => s.student_id === sg.student_id);
+      if (sub) return sub;
+      return {
+        id: `unsub_${exam.id}_${sg.student_id}`,
+        student_id: sg.student_id,
+        exam_id: exam.id,
+        title: null,
+        file: null,
+        examStatus: 'NOT_SUBMITTED',
+        score: null,
+        feedback: null,
+        checked_at: null,
+        created_at: null,
+        updated_at: null,
+        students: sg.students
+      };
+    });
+
+    return { success: true, data: result, exam };
   }
 
   // 4. Imtihonni tekshirib ball qo'yish (Grade)
-  async gradeSubmission(answerId: number, score: number, feedback: string, currentUser: any) {
-    const answer = await this.prisma.examAnswer.findUnique({
-      where: { id: answerId },
+  async gradeSubmission(answerId: string | number, score: number, feedback: string, currentUser: any) {
+    let answer;
+
+    // Parse and auto-create if it's an unsubmitted student
+    if (typeof answerId === 'string' && answerId.startsWith('unsub_')) {
+      const parts = answerId.split('_');
+      const examId = Number(parts[1]);
+      const studentId = Number(parts[2]);
+
+      if (currentUser.role === UserRole.TEACHER) {
+        const access = await this.prisma.teachersGroup.findFirst({
+          where: { teacher_id: currentUser.id, group_id: examId },
+        });
+        if (!access) throw new ForbiddenException("Ruxsat yo'q");
+      }
+
+      let status: ExamStatus = ExamStatus.ACCEPTED;
+      if (score < 60) status = ExamStatus.RETURNED;
+
+      const created = await this.prisma.examAnswer.create({
+        data: {
+          exam_id: examId,
+          student_id: studentId,
+          title: "Baho kiritildi",
+          examStatus: status,
+          score,
+          feedback,
+          checked_at: new Date(),
+        },
+      });
+      return { success: true, data: created, message: "Baho qo'yildi" };
+    }
+
+    // Existing submission flow
+    const numericId = Number(answerId);
+    answer = await this.prisma.examAnswer.findUnique({
+      where: { id: numericId },
       include: { exams: true },
     });
     if (!answer) throw new NotFoundException("Topshiriq topilmadi");
@@ -118,7 +178,7 @@ export class ExamsService {
     if (score < 60) status = ExamStatus.RETURNED;
 
     const updated = await this.prisma.examAnswer.update({
-      where: { id: answerId },
+      where: { id: numericId },
       data: {
         score,
         feedback,

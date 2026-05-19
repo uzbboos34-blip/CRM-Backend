@@ -21,6 +21,10 @@ export class CreateExamDto {
 
   @ApiProperty({ required: false, description: 'Imtihon boshlanish vaqti' })
   @IsOptional()
+  @IsString()
+  file?: string;
+
+  @IsOptional()
   @IsDateString()
   start_date?: string;
 
