@@ -4,6 +4,13 @@ import { CreateVideoDto } from './dto/create-video.dto';
 import { UserRole } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase client initialize
+const supabase = createClient(
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_KEY || ''
+);
 
 @Injectable()
 export class VideosService {
@@ -26,24 +33,68 @@ export class VideosService {
       if (!access) throw new ForbiddenException("Bu guruhga ruxsatingiz yo'q");
     }
 
-    // 2. Get actual file size if saved to disk
+    // 2. Get actual file size if saved to disk and upload to Supabase
     let actualSize: bigint | null = null;
+    let finalUrl = dto.video_url || '';
+
     if (video_file) {
       const filePath = path.join('./src/uploads', video_file);
       try {
         const stat = fs.statSync(filePath);
         actualSize = BigInt(stat.size);
-      } catch {
-        actualSize = file_size ? BigInt(file_size) : null;
+
+        // Read file as Buffer for uploading
+        const fileBuffer = fs.readFileSync(filePath);
+        const ext = path.extname(video_file).toLowerCase();
+        
+        // Define correct mime type
+        let contentType = 'video/mp4';
+        if (ext === '.mov') contentType = 'video/quicktime';
+        else if (ext === '.avi') contentType = 'video/x-msvideo';
+        else if (ext === '.mkv') contentType = 'video/x-matroska';
+
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+          .from('videos')
+          .upload(video_file, fileBuffer, {
+            contentType,
+            duplex: 'half',
+          });
+
+        if (uploadError) {
+          throw new Error(`Supabase yuklashda xatolik yuz berdi: ${uploadError.message}`);
+        }
+
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('videos')
+          .getPublicUrl(video_file);
+
+        finalUrl = publicUrlData.publicUrl;
+
+        // Delete temporary file from disk immediately to save space
+        try {
+          fs.unlinkSync(filePath);
+        } catch (e) {
+          console.error('Vaqtinchalik faylni o\'chirishda xatolik:', e);
+        }
+      } catch (err) {
+        // Safe clean up in case of any failures
+        try {
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        } catch {}
+        throw err;
       }
     }
 
-    // 3. Create video
+    // 3. Create video database record with Supabase URL
     const data = await this.prisma.videos.create({
       data: {
         title: dto.title,
         description: dto.description,
-        video_url: video_file || dto.video_url || '',
+        video_url: finalUrl,
         file_size: actualSize,
         group_id: groupId,
         lesson_id: lessonId,
@@ -100,7 +151,20 @@ export class VideosService {
       }
     }
 
-    // Delete physical file if exists
+    // Delete from Supabase Storage if it's stored there
+    if (video.video_url && video.video_url.includes('supabase.co/storage')) {
+      try {
+        const parts = video.video_url.split('/');
+        const filename = parts[parts.length - 1];
+        if (filename) {
+          await supabase.storage.from('videos').remove([filename]);
+        }
+      } catch (e) {
+        console.error('Supabase-dan faylni o\'chirishda xatolik:', e);
+      }
+    }
+
+    // Delete local physical file if exists (for old videos)
     if (video.video_url && !video.video_url.startsWith('http')) {
       const filePath = path.join('./src/uploads', video.video_url);
       try { fs.unlinkSync(filePath); } catch { /* ignore */ }
