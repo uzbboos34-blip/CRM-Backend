@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/core/database/prisma.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { UserRole } from '@prisma/client';
@@ -8,14 +8,20 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class VideosService {
-  private supabase: SupabaseClient;
+  constructor(private prisma: PrismaService) {}
 
-  constructor(private prisma: PrismaService) {
-    // Supabase faqatgina NestJS xizmatlari to'liq ishga tushganda yaratiladi
-    this.supabase = createClient(
-      process.env.SUPABASE_URL || '',
-      process.env.SUPABASE_KEY || ''
-    );
+  // Supabase-ni faqat kerak bo'lganda (lazily) ishga tushirish
+  private getSupabaseClient(): SupabaseClient {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_KEY;
+
+    if (!url || !key) {
+      throw new BadRequestException(
+        "Supabase konfiguratsiyasi topilmadi. Iltimos, Render.com-da SUPABASE_URL va SUPABASE_KEY o'zgaruvchilarini sozlang."
+      );
+    }
+
+    return createClient(url, key);
   }
 
   async create(
@@ -55,8 +61,11 @@ export class VideosService {
         else if (ext === '.avi') contentType = 'video/x-msvideo';
         else if (ext === '.mkv') contentType = 'video/x-matroska';
 
+        // Lazy initialization
+        const supabase = this.getSupabaseClient();
+
         // Upload to Supabase Storage
-        const { error: uploadError } = await this.supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('videos')
           .upload(video_file, fileBuffer, {
             contentType,
@@ -68,7 +77,7 @@ export class VideosService {
         }
 
         // Get public URL
-        const { data: publicUrlData } = this.supabase.storage
+        const { data: publicUrlData } = supabase.storage
           .from('videos')
           .getPublicUrl(video_file);
 
@@ -156,10 +165,11 @@ export class VideosService {
     // Delete from Supabase Storage if it's stored there
     if (video.video_url && video.video_url.includes('supabase.co/storage')) {
       try {
+        const supabase = this.getSupabaseClient();
         const parts = video.video_url.split('/');
         const filename = parts[parts.length - 1];
         if (filename) {
-          await this.supabase.storage.from('videos').remove([filename]);
+          await supabase.storage.from('videos').remove([filename]);
         }
       } catch (e) {
         console.error('Supabase-dan faylni o\'chirishda xatolik:', e);
