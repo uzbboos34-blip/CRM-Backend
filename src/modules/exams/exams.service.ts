@@ -212,4 +212,54 @@ export class ExamsService {
 
     return { success: true, message: "Imtihon natijalari e'lon qilindi!" };
   }
+
+  // 6. Imtihonni tahrirlash (Update)
+  async updateExam(examId: number, data: { title: string; description?: string; start_date?: Date; end_date?: Date; file?: string }, currentUser: any) {
+    const exam = await this.prisma.exam.findUnique({ where: { id: examId } });
+    if (!exam) throw new NotFoundException("Imtihon topilmadi");
+
+    if (currentUser.role === UserRole.TEACHER) {
+      const access = await this.prisma.teachersGroup.findFirst({
+        where: { teacher_id: currentUser.id, group_id: exam.group_id },
+      });
+      if (!access) throw new ForbiddenException("Ruxsat yo'q");
+    }
+
+    const updated = await this.prisma.exam.update({
+      where: { id: examId },
+      data: {
+        title: data.title,
+        description: data.description,
+        start_date: data.start_date ? new Date(data.start_date) : undefined,
+        end_date: data.end_date ? new Date(data.end_date) : undefined,
+        file: data.file || undefined,
+      },
+    });
+
+    return { success: true, data: updated, message: "Imtihon muvaffaqiyatli tahrirlandi" };
+  }
+
+  // 7. Imtihonni o'chirish (Delete)
+  async deleteExam(examId: number, currentUser: any) {
+    const exam = await this.prisma.exam.findUnique({ where: { id: examId } });
+    if (!exam) throw new NotFoundException("Imtihon topilmadi");
+
+    if (currentUser.role === UserRole.TEACHER) {
+      const access = await this.prisma.teachersGroup.findFirst({
+        where: { teacher_id: currentUser.id, group_id: exam.group_id },
+      });
+      if (!access) throw new ForbiddenException("Ruxsat yo'q");
+    }
+
+    // First delete all submissions under this exam
+    await this.prisma.examAnswer.deleteMany({
+      where: { exam_id: examId }
+    });
+
+    await this.prisma.exam.delete({
+      where: { id: examId }
+    });
+
+    return { success: true, message: "Imtihon muvaffaqiyatli o'chirildi" };
+  }
 }

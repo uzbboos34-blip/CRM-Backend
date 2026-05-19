@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, UseGuards, Req, ParseIntPipe, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Req, ParseIntPipe, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { ExamsService } from './exams.service';
@@ -86,5 +86,45 @@ export class ExamsController {
   @Post(':examId/publish')
   publishExam(@Param('examId', ParseIntPipe) examId: number, @Req() req: Request) {
     return this.examsService.publishExam(examId, req['user']);
+  }
+
+  @ApiOperation({ summary: 'Imtihonni tahrirlash (TEACHER, ADMIN)' })
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  @Put(':examId')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + '-' + file.originalname);
+        },
+      }),
+    }),
+  )
+  updateExam(
+    @Param('examId', ParseIntPipe) examId: number,
+    @Body() dto: any,
+    @Req() req: Request,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.examsService.updateExam(
+      examId,
+      {
+        title: dto.title,
+        description: dto.description,
+        start_date: dto.start_date,
+        end_date: dto.end_date,
+        file: file?.filename,
+      },
+      req['user'],
+    );
+  }
+
+  @ApiOperation({ summary: 'Imtihonni o\'chirish (TEACHER, ADMIN)' })
+  @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  @Delete(':examId')
+  deleteExam(@Param('examId', ParseIntPipe) examId: number, @Req() req: Request) {
+    return this.examsService.deleteExam(examId, req['user']);
   }
 }
