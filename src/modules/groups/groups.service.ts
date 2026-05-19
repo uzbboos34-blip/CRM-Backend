@@ -178,6 +178,9 @@ export class GroupsService {
 
     const groups = await this.prisma.groups.findMany({
       where,
+      orderBy: {
+        id: 'asc'
+      },
       select: {
         id: true,
         name: true,

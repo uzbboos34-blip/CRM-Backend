@@ -44,7 +44,12 @@ export class RoomsService {
       where.name = query.name;
     }
     
-    return await this.prisma.rooms.findMany({where});
+    return await this.prisma.rooms.findMany({
+      where,
+      orderBy: {
+        id: 'asc'
+      }
+    });
   }
 
   findOne(id: number) {

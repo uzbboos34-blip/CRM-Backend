@@ -63,7 +63,12 @@ export class CoursesService {
       where.duration_hours = query.duration_hours;
     }
 
-    return await this.prisma.courses.findMany({where});
+    return await this.prisma.courses.findMany({
+      where,
+      orderBy: {
+        id: 'asc'
+      }
+    });
   }
 
   async findOne(id: number) {

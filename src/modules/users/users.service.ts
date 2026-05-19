@@ -84,6 +84,9 @@ export class UsersService {
 
   return await this.prisma.user.findMany({
     where,
+    orderBy: {
+      id: 'asc'
+    }
   });
 }
 
