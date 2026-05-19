@@ -73,7 +73,7 @@ export class VideosService {
           });
 
         if (uploadError) {
-          throw new Error(`Supabase yuklashda xatolik yuz berdi: ${uploadError.message}`);
+          throw new Error(`Supabase Storage yuklash xatosi: ${uploadError.message}`);
         }
 
         // Get public URL
@@ -96,7 +96,9 @@ export class VideosService {
             fs.unlinkSync(filePath);
           }
         } catch {}
-        throw err;
+        
+        // Xatolikni chiroyli ko'rinishda brauzerga qaytarish
+        throw new BadRequestException(err.message || "Video yuklash jarayonida xatolik yuz berdi");
       }
     }
 
