@@ -113,6 +113,9 @@ export class StudentsService {
 
     const students = await this.prisma.students.findMany({
       where,
+      orderBy: {
+        id: 'asc'
+      },
       select: {
         id: true,
         full_name: true,
