@@ -192,11 +192,16 @@ export class StudentsService {
       }
       photo = filename;
     }
-    if (payload.groups?.length) {
+    let groupIds: number[] = [];
+    if (payload.groups) {
+      groupIds = (Array.isArray(payload.groups) ? payload.groups : [payload.groups]).map(Number).filter(Boolean);
+    }
+
+    if (groupIds.length) {
       const groups = await this.prisma.groups.findMany({
         where: {
           id: {
-            in: payload.groups,
+            in: groupIds,
           },
         },
         select: {
@@ -204,7 +209,7 @@ export class StudentsService {
         },
       });
 
-      if (groups.length !== payload.groups.length) {
+      if (groups.length !== groupIds.length) {
         throw new NotFoundException('Guruhlardan biri topilmadi');
       }
     }
@@ -216,16 +221,19 @@ export class StudentsService {
     if (payload.birth_date) {
       birth_date = new Date(payload.birth_date);
     }
+
+    const { groups: _, password: __, birth_date: ___, ...studentData } = payload;
+
     await this.prisma.students.update({
       where: { id },
       data: {
-        ...payload,
+        ...studentData,
         photo,
         password: passHash,
         birth_date,
-        studentGroups: payload.groups?.length ? {
+        studentGroups: groupIds.length ? {
           deleteMany: {},
-          create: payload.groups?.map((groupId) => ({
+          create: groupIds.map((groupId) => ({
             group_id: groupId,
           })),
         } : undefined,
@@ -242,13 +250,17 @@ export class StudentsService {
     if (!student) {
       throw new NotFoundException('Student not found');
     }
-    const filePath = join(
-      process.cwd(),
-      'src',
-      'uploads',
-      student.photo as string,
-    );
-    await fs.unlinkSync(filePath);
+    if (student.photo) {
+      const filePath = join(
+        process.cwd(),
+        'src',
+        'uploads',
+        student.photo,
+      );
+      if (fs.existsSync(filePath)) {
+        await fs.unlinkSync(filePath);
+      }
+    }
 
     await this.prisma.students.update({
       where: { id },

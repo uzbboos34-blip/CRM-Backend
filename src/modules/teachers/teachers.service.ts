@@ -235,11 +235,16 @@ export class TeachersService {
       photo = filename;
     }
 
-    if (payload.groups?.length) {
+    let groupIds: number[] = [];
+    if (payload.groups) {
+      groupIds = (Array.isArray(payload.groups) ? payload.groups : [payload.groups]).map(Number).filter(Boolean);
+    }
+
+    if (groupIds.length) {
       const groups = await this.prisma.groups.findMany({
         where: {
           id: {
-            in: payload.groups,
+            in: groupIds,
           },
         },
         select: {
@@ -247,7 +252,7 @@ export class TeachersService {
         },
       });
 
-      if (groups.length !== payload.groups.length) {
+      if (groups.length !== groupIds.length) {
         throw new NotFoundException('Guruhlardan biri topilmadi');
       }
     }
@@ -258,15 +263,17 @@ export class TeachersService {
       passHash = await bcrypt.hash(payload.password, 10);
     }
 
+    const { groups: _, password: __, ...teacherData } = payload;
+
     await this.prisma.teachers.update({
       where: { id },
       data: {
-        ...payload,
+        ...teacherData,
         photo,
         password: passHash,
-        teachersGroups: payload.groups?.length ? {
+        teachersGroups: groupIds.length ? {
           deleteMany: {},
-          create: payload.groups?.map((groupId) => ({
+          create: groupIds.map((groupId) => ({
             group_id: groupId,
           })),
         } : undefined,
@@ -283,13 +290,17 @@ export class TeachersService {
     if (!teacher) {
       throw new NotFoundException('Teacher not found');
     }
-    const filePath = join(
-      process.cwd(),
-      'src',
-      'uploads',
-      teacher.photo as string,
-    );
-    await fs.unlinkSync(filePath);
+    if (teacher.photo) {
+      const filePath = join(
+        process.cwd(),
+        'src',
+        'uploads',
+        teacher.photo,
+      );
+      if (fs.existsSync(filePath)) {
+        await fs.unlinkSync(filePath);
+      }
+    }
 
     await this.prisma.teachers.update({
       where: { id },
