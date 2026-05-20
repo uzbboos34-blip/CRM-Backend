@@ -511,6 +511,8 @@ export class HomeWorksService {
     id: number,
     dto: UpdateHomeWorkDto,
     currentUser: { id: number; role: UserRole },
+    file?: string,
+    video?: string,
   ) {
     const hw = await this.prisma.homeWork.findUnique({ where: { id } });
     if (!hw) throw new NotFoundException('Uyga vazifa topilmadi');
@@ -519,9 +521,52 @@ export class HomeWorksService {
       await this.checkTeacherGroup(currentUser.id, hw.group_id);
     }
 
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_KEY;
+
+    // Upload new files to Supabase if provided, and delete old ones
+    if (file) {
+      if (hw.file) {
+        const oldPath = join(process.cwd(), 'src', 'uploads', hw.file);
+        try { fs.unlinkSync(oldPath); } catch {}
+        if (url && key) {
+          try {
+            const supabase = createClient(url, key);
+            await supabase.storage.from('NajotEdu').remove([hw.file]);
+          } catch {}
+        }
+      }
+      await uploadToSupabase(file);
+    }
+
+    if (video) {
+      if (hw.video_url) {
+        if (hw.video_url.includes('supabase.co/storage')) {
+          try {
+            const parts = hw.video_url.split('/');
+            const filename = parts[parts.length - 1];
+            if (filename && url && key) {
+              const supabase = createClient(url, key);
+              await supabase.storage.from('NajotEdu').remove([filename]);
+            }
+          } catch {}
+        } else if (!hw.video_url.startsWith('http')) {
+          const oldPath = join(process.cwd(), 'src', 'uploads', hw.video_url);
+          try { fs.unlinkSync(oldPath); } catch {}
+        }
+      }
+      await uploadToSupabase(video);
+    }
+
     const updated = await this.prisma.homeWork.update({
       where: { id },
-      data: { ...dto },
+      data: {
+        title: dto.title,
+        description: dto.description,
+        lesson_id: dto.lesson_id ? Number(dto.lesson_id) : undefined,
+        file: file !== undefined ? file : undefined,
+        video_url: video !== undefined ? video : undefined,
+      },
       include: {
         lessons: { select: { id: true, topic: true, date: true } },
         groups: { select: { id: true, name: true } },

@@ -205,12 +205,35 @@ export class HomeWorksController {
   @ApiOperation({ summary: 'Uyga vazifani yangilash (ADMIN, SUPERADMIN, TEACHER)' })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @Put(':id')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'file', maxCount: 1 },
+        { name: 'video', maxCount: 1 },
+      ],
+      {
+        storage: diskStorage({
+          destination: './src/uploads',
+          filename: (req, file, cb) => {
+            const ext = file.originalname.split('.').pop();
+            const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
+            cb(null, filename);
+          },
+        }),
+      },
+    ),
+  )
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateHomeWorkDto,
     @Req() req: Request,
+    @UploadedFiles()
+    files: { file?: Express.Multer.File[]; video?: Express.Multer.File[] },
   ) {
-    return this.homeWorksService.update(id, dto, req['user']);
+    const file = files?.file?.[0]?.filename;
+    const video = files?.video?.[0]?.filename;
+    return this.homeWorksService.update(id, dto, req['user'], file, video);
   }
 
   // ─── O'CHIRISH ────────────────────────────────────────────────────────────
