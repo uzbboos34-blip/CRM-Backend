@@ -9,6 +9,9 @@ import { UpdateHomeWorkDto } from './dto/update-home-work.dto';
 import { PrismaService } from 'src/core/database/prisma.service';
 import { UserRole, Status, HomeworkStatus } from '@prisma/client';
 import { uploadToSupabase } from 'src/core/utils/supabase-upload';
+import { join } from 'path';
+import * as fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class HomeWorksService {
@@ -530,13 +533,91 @@ export class HomeWorksService {
 
   // ─── DELETE ───────────────────────────────────────────────────────────────
   async remove(id: number, currentUser: { id: number; role: UserRole }) {
-    const hw = await this.prisma.homeWork.findUnique({ where: { id } });
+    const hw = await this.prisma.homeWork.findUnique({
+      where: { id },
+      include: {
+        homeWorkAnswers: {
+          select: {
+            id: true,
+            file: true,
+          }
+        }
+      }
+    });
     if (!hw) throw new NotFoundException('Uyga vazifa topilmadi');
 
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, hw.group_id);
     }
 
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_KEY;
+
+    // 1. Delete associated files of homework answers from Supabase/disk
+    for (const answer of hw.homeWorkAnswers) {
+      if (answer.file) {
+        try {
+          const files = JSON.parse(answer.file);
+          if (Array.isArray(files)) {
+            for (const file of files) {
+              const filePath = join(process.cwd(), 'src', 'uploads', file);
+              try { fs.unlinkSync(filePath); } catch {}
+              if (url && key) {
+                try {
+                  const supabase = createClient(url, key);
+                  await supabase.storage.from('NajotEdu').remove([file]);
+                } catch {}
+              }
+            }
+          }
+        } catch {}
+      }
+    }
+
+    // 2. Delete all results for all answers of this homework
+    const answerIds = hw.homeWorkAnswers.map(a => a.id);
+    if (answerIds.length > 0) {
+      await this.prisma.homeWorkResult.deleteMany({
+        where: {
+          homework_answer_id: { in: answerIds }
+        }
+      });
+      // 3. Delete all answers of this homework
+      await this.prisma.homeWorkAnswer.deleteMany({
+        where: {
+          homwork_id: id
+        }
+      });
+    }
+
+    // 4. Delete homework attachment file from Supabase/disk
+    if (hw.file) {
+      const filePath = join(process.cwd(), 'src', 'uploads', hw.file);
+      try { fs.unlinkSync(filePath); } catch {}
+      if (url && key) {
+        try {
+          const supabase = createClient(url, key);
+          await supabase.storage.from('NajotEdu').remove([hw.file]);
+        } catch {}
+      }
+    }
+
+    // 5. Delete homework video file if any
+    if (hw.video_url && hw.video_url.includes('supabase.co/storage')) {
+      try {
+        const parts = hw.video_url.split('/');
+        const filename = parts[parts.length - 1];
+        if (filename && url && key) {
+          const supabase = createClient(url, key);
+          await supabase.storage.from('NajotEdu').remove([filename]);
+        }
+      } catch {}
+    } else if (hw.video_url && !hw.video_url.startsWith('http')) {
+      const filePath = join(process.cwd(), 'src', 'uploads', hw.video_url);
+      try { fs.unlinkSync(filePath); } catch {}
+    }
+
+    // 6. Delete the homework itself
     await this.prisma.homeWork.delete({ where: { id } });
     return { success: true, message: "Uyga vazifa o'chirildi" };
   }
