@@ -46,12 +46,12 @@ export class DashboardService {
     });
     const courseOccupancyRate = totalMaxStudents > 0 ? Math.round((totalEnrolled / totalMaxStudents) * 100) : 0;
 
-    // 4. O'quvchilar to'lovi (Approximate by active student group statuses)
-    const [totalStudentGroups, activeStudentGroups] = await Promise.all([
-      this.prisma.studentGroup.count(),
-      this.prisma.studentGroup.count({ where: { status: Status.active } }),
+    // 4. Faol o'quvchilar ulushi (Active students rate)
+    const [totalStudentsCount, activeStudentsCount] = await Promise.all([
+      this.prisma.students.count(),
+      this.prisma.students.count({ where: { status: StudentStatus.active } }),
     ]);
-    const paymentRate = totalStudentGroups > 0 ? Math.round((activeStudentGroups / totalStudentGroups) * 100) : 0;
+    const activeStudentsRate = totalStudentsCount > 0 ? Math.round((activeStudentsCount / totalStudentsCount) * 100) : 0;
 
     // 5. So'nggi faoliyat (Recent activity)
     const [latestStudents, latestLessons, latestHomeworks, latestGroups] = await Promise.all([
@@ -125,7 +125,7 @@ export class DashboardService {
         attendanceRate,
         homeworkCompletionRate,
         courseOccupancyRate,
-        paymentRate,
+        activeStudentsRate,
         recentActivity,
       },
     };
