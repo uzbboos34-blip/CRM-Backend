@@ -443,6 +443,10 @@ export class GroupsService {
       data.start_date = new Date(payload.start_date);
     }
 
+    if (payload.end_date) {
+      data.end_date = new Date(payload.end_date);
+    }
+
     await this.prisma.groups.update({
       where: { id },
       data: data
