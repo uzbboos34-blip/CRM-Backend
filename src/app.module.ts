@@ -15,6 +15,7 @@ import { AttendancesModule } from './modules/attendances/attendances.module';
 import { HomeWorksModule } from './modules/home-works/home-works.module';
 import { VideosModule } from './modules/videos/videos.module';
 import { ExamsModule } from './modules/exams/exams.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ExamsModule } from './modules/exams/exams.module';
     HomeWorksModule,
     VideosModule,
     ExamsModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}
