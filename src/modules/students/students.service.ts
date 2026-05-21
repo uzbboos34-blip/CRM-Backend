@@ -2,23 +2,23 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { CreateStudentDto } from './dto/create-student.dto';
-import { UpdateStudentDto } from './dto/update-student.dto';
-import { PrismaService } from 'src/core/database/prisma.service';
-import * as bcrypt from 'bcrypt';
-import { join } from 'path';
-import fs from 'fs';
-import { EmailService } from 'src/common/email/email.service';
-import { StudentStatus } from '@prisma/client';
-import { uploadToSupabase } from 'src/core/utils/supabase-upload';
-import { createClient } from '@supabase/supabase-js';
+} from "@nestjs/common";
+import { CreateStudentDto } from "./dto/create-student.dto";
+import { UpdateStudentDto } from "./dto/update-student.dto";
+import { PrismaService } from "src/core/database/prisma.service";
+import * as bcrypt from "bcrypt";
+import { join } from "path";
+import fs from "fs";
+import { EmailService } from "src/common/email/email.service";
+import { StudentStatus } from "@prisma/client";
+import { uploadToSupabase } from "src/core/utils/supabase-upload";
+import { createClient } from "@supabase/supabase-js";
 @Injectable()
 export class StudentsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
-  ) { }
+  ) {}
   async create(payload: CreateStudentDto, filename: string) {
     const existStudent = await this.prisma.students.findFirst({
       where: {
@@ -35,10 +35,10 @@ export class StudentsService {
 
     if (existStudent) {
       if (filename) {
-        const filePath = join(process.cwd(), 'src', 'uploads', filename);
+        const filePath = join(process.cwd(), "src", "uploads", filename);
         await fs.unlinkSync(filePath);
       }
-      throw new ConflictException('Student already exists');
+      throw new ConflictException("Student already exists");
     }
 
     if (payload.groups?.length) {
@@ -54,7 +54,7 @@ export class StudentsService {
       });
 
       if (groups.length !== payload.groups.length) {
-        throw new NotFoundException('Guruhlardan biri topilmadi');
+        throw new NotFoundException("Guruhlardan biri topilmadi");
       }
     }
 
@@ -73,20 +73,21 @@ export class StudentsService {
         password: passHash,
         photo: filename ?? null,
         birth_date: new Date(payload.birth_date),
-        studentGroups: payload.groups?.length ? {
-          create: payload.groups?.map((groupId) => ({
-            group_id: groupId,
-          }))
-        } : undefined,
+        studentGroups: payload.groups?.length
+          ? {
+              create: payload.groups?.map((groupId) => ({
+                group_id: groupId,
+              })),
+            }
+          : undefined,
       },
     });
-    
-    this.emailService.sendEmail(payload.email,payload.phone, payload.password);
 
+    this.emailService.sendEmail(payload.email, payload.phone, payload.password);
 
     return {
       success: true,
-      message: 'Student created successfully',
+      message: "Student created successfully",
     };
   }
 
@@ -100,7 +101,7 @@ export class StudentsService {
     }
 
     if (query.full_name) {
-      where.full_name = { contains: query.full_name, mode: 'insensitive' };
+      where.full_name = { contains: query.full_name, mode: "insensitive" };
     }
 
     if (query.email) {
@@ -122,7 +123,7 @@ export class StudentsService {
     const students = await this.prisma.students.findMany({
       where,
       orderBy: {
-        id: 'asc'
+        id: "asc",
       },
       select: {
         id: true,
@@ -139,11 +140,11 @@ export class StudentsService {
             groups: {
               select: {
                 id: true,
-                name: true
-              }
-            }
-          }
-        }
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -171,15 +172,15 @@ export class StudentsService {
             groups: {
               select: {
                 id: true,
-                name: true
-              }
-            }
-          }
-        }
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
     if (!teacher) {
-      throw new NotFoundException('Student not found');
+      throw new NotFoundException("Student not found");
     }
     return {
       success: true,
@@ -191,13 +192,13 @@ export class StudentsService {
     const student = await this.prisma.students.findUnique({ where: { id } });
 
     if (!student) {
-      throw new NotFoundException('Student not found');
+      throw new NotFoundException("Student not found");
     }
     let photo = student.photo;
 
     if (filename) {
       if (student.photo) {
-        const filePath = join(process.cwd(), 'src', 'uploads', student.photo);
+        const filePath = join(process.cwd(), "src", "uploads", student.photo);
         try {
           fs.unlinkSync(filePath);
         } catch {}
@@ -207,7 +208,7 @@ export class StudentsService {
         if (url && key) {
           try {
             const supabase = createClient(url, key);
-            await supabase.storage.from('NajotEdu').remove([student.photo]);
+            await supabase.storage.from("NajotEdu").remove([student.photo]);
           } catch {}
         }
       }
@@ -216,7 +217,11 @@ export class StudentsService {
     }
     let groupIds: number[] = [];
     if (payload.groups) {
-      groupIds = (Array.isArray(payload.groups) ? payload.groups : [payload.groups]).map(Number).filter(Boolean);
+      groupIds = (
+        Array.isArray(payload.groups) ? payload.groups : [payload.groups]
+      )
+        .map(Number)
+        .filter(Boolean);
     }
 
     if (groupIds.length) {
@@ -232,7 +237,7 @@ export class StudentsService {
       });
 
       if (groups.length !== groupIds.length) {
-        throw new NotFoundException('Guruhlardan biri topilmadi');
+        throw new NotFoundException("Guruhlardan biri topilmadi");
       }
     }
     let passHash;
@@ -244,7 +249,12 @@ export class StudentsService {
       birth_date = new Date(payload.birth_date);
     }
 
-    const { groups: _, password: __, birth_date: ___, ...studentData } = payload;
+    const {
+      groups: _,
+      password: __,
+      birth_date: ___,
+      ...studentData
+    } = payload;
 
     await this.prisma.students.update({
       where: { id },
@@ -253,32 +263,29 @@ export class StudentsService {
         photo,
         password: passHash,
         birth_date,
-        studentGroups: groupIds.length ? {
-          deleteMany: {},
-          create: groupIds.map((groupId) => ({
-            group_id: groupId,
-          })),
-        } : undefined,
+        studentGroups: groupIds.length
+          ? {
+              deleteMany: {},
+              create: groupIds.map((groupId) => ({
+                group_id: groupId,
+              })),
+            }
+          : undefined,
       },
     });
     return {
       success: true,
-      message: 'Student updated successfully',
+      message: "Student updated successfully",
     };
   }
 
   async remove(id: number) {
     const student = await this.prisma.students.findUnique({ where: { id } });
     if (!student) {
-      throw new NotFoundException('Student not found');
+      throw new NotFoundException("Student not found");
     }
     if (student.photo) {
-      const filePath = join(
-        process.cwd(),
-        'src',
-        'uploads',
-        student.photo,
-      );
+      const filePath = join(process.cwd(), "src", "uploads", student.photo);
       if (fs.existsSync(filePath)) {
         await fs.unlinkSync(filePath);
       }
@@ -287,13 +294,13 @@ export class StudentsService {
     await this.prisma.students.update({
       where: { id },
       data: {
-        status: StudentStatus.inactive
-      }
+        status: StudentStatus.inactive,
+      },
     });
 
     return {
       success: true,
-      message: 'Student deleted successfully',
+      message: "Student deleted successfully",
     };
   }
 }

@@ -2,12 +2,12 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-} from '@nestjs/common';
-import { CreateRoomDto } from './dto/create-room.dto';
-import { UpdateRoomDto } from './dto/update-room.dto';
-import { PrismaService } from 'src/core/database/prisma.service';
-import { Status } from '@prisma/client';
-import { FindAllRoomsDto } from './dto/query.dto';
+} from "@nestjs/common";
+import { CreateRoomDto } from "./dto/create-room.dto";
+import { UpdateRoomDto } from "./dto/update-room.dto";
+import { PrismaService } from "src/core/database/prisma.service";
+import { Status } from "@prisma/client";
+import { FindAllRoomsDto } from "./dto/query.dto";
 
 @Injectable()
 export class RoomsService {
@@ -20,7 +20,7 @@ export class RoomsService {
       },
     });
     if (room) {
-      throw new ConflictException('Room already exists');
+      throw new ConflictException("Room already exists");
     }
 
     await this.prisma.rooms.create({
@@ -29,12 +29,12 @@ export class RoomsService {
 
     return {
       success: true,
-      message: 'Room created successfully',
+      message: "Room created successfully",
     };
   }
 
   async findAll(query: FindAllRoomsDto) {
-    const where : any = {};
+    const where: any = {};
 
     if (query.status) {
       where.status = query.status;
@@ -45,12 +45,12 @@ export class RoomsService {
     if (query.name) {
       where.name = query.name;
     }
-    
+
     return await this.prisma.rooms.findMany({
       where,
       orderBy: {
-        id: 'asc'
-      }
+        id: "asc",
+      },
     });
   }
 
@@ -58,7 +58,7 @@ export class RoomsService {
     const room = this.prisma.rooms.findUnique({ where: { id } });
 
     if (!room) {
-      throw new BadRequestException('Room not fount');
+      throw new BadRequestException("Room not fount");
     }
     return {
       success: true,
@@ -70,7 +70,7 @@ export class RoomsService {
     const room = await this.prisma.rooms.findUnique({ where: { id } });
 
     if (!room) {
-      throw new BadRequestException('Room not fount');
+      throw new BadRequestException("Room not fount");
     }
 
     await this.prisma.rooms.update({
@@ -80,7 +80,7 @@ export class RoomsService {
 
     return {
       success: true,
-      message: 'Room updated successfully',
+      message: "Room updated successfully",
     };
   }
 
@@ -88,19 +88,19 @@ export class RoomsService {
     const room = await this.prisma.rooms.findUnique({ where: { id } });
 
     if (!room) {
-      throw new BadRequestException('Room not fount');
+      throw new BadRequestException("Room not fount");
     }
 
     await this.prisma.rooms.update({
       where: { id },
       data: {
-        status: Status.inactive
-      }
+        status: Status.inactive,
+      },
     });
 
     return {
       success: true,
-      message: 'Room deleted successfully',
+      message: "Room deleted successfully",
     };
   }
 }

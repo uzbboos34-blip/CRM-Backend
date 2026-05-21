@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from "@nestjs/swagger";
 import {
   IsEmail,
   IsMobilePhone,
@@ -6,7 +6,7 @@ import {
   IsPassportNumber,
   IsString,
   IsStrongPassword,
-} from 'class-validator';
+} from "class-validator";
 
 export class CreateUserDto {
   @ApiProperty()
@@ -23,7 +23,7 @@ export class CreateUserDto {
   password: string;
 
   @ApiProperty()
-  @IsMobilePhone('uz-UZ')
+  @IsMobilePhone("uz-UZ")
   phone: string;
 
   @ApiProperty()

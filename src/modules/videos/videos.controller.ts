@@ -1,33 +1,42 @@
 import {
-  Controller, Get, Post, Body, Param, Delete,
-  UseGuards, Req, ParseIntPipe, UseInterceptors, UploadedFile
-} from '@nestjs/common';
-import { VideosService } from './videos.service';
-import { CreateVideoDto } from './dto/create-video.dto';
-import { TokenGuard } from 'src/common/guards/token.guards';
-import { RolesGuard } from 'src/common/guards/role.guards';
-import { Roles } from 'src/common/decorators/roles';
-import { UserRole } from '@prisma/client';
-import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+  ParseIntPipe,
+  UseInterceptors,
+  UploadedFile,
+} from "@nestjs/common";
+import { VideosService } from "./videos.service";
+import { CreateVideoDto } from "./dto/create-video.dto";
+import { TokenGuard } from "src/common/guards/token.guards";
+import { RolesGuard } from "src/common/guards/role.guards";
+import { Roles } from "src/common/decorators/roles";
+import { UserRole } from "@prisma/client";
+import { ApiBearerAuth, ApiConsumes, ApiTags } from "@nestjs/swagger";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { diskStorage } from "multer";
 
-@ApiTags('Videos')
+@ApiTags("Videos")
 @ApiBearerAuth()
-@Controller('videos')
+@Controller("videos")
 @UseGuards(TokenGuard, RolesGuard)
 export class VideosController {
   constructor(private readonly videosService: VideosService) {}
 
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @Post()
-  @ApiConsumes('multipart/form-data')
+  @ApiConsumes("multipart/form-data")
   @UseInterceptors(
-    FileInterceptor('video', {
+    FileInterceptor("video", {
       storage: diskStorage({
-        destination: './src/uploads',
+        destination: "./src/uploads",
         filename: (req, file, cb) => {
-          const ext = file.originalname.split('.').pop();
+          const ext = file.originalname.split(".").pop();
           const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
           cb(null, filename);
         },
@@ -43,14 +52,17 @@ export class VideosController {
   }
 
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
-  @Get('group/:groupId')
-  findAllByGroup(@Param('groupId', ParseIntPipe) groupId: number, @Req() req: any) {
+  @Get("group/:groupId")
+  findAllByGroup(
+    @Param("groupId", ParseIntPipe) groupId: number,
+    @Req() req: any,
+  ) {
     return this.videosService.findAllByGroup(groupId, req.user);
   }
 
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.TEACHER)
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  @Delete(":id")
+  remove(@Param("id", ParseIntPipe) id: number, @Req() req: any) {
     return this.videosService.remove(id, req.user);
   }
 }

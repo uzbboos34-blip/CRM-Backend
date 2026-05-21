@@ -10,18 +10,18 @@ import {
   ParseIntPipe,
   UseGuards,
   Query,
-} from '@nestjs/common';
-import { RoomsService } from './rooms.service';
-import { CreateRoomDto } from './dto/create-room.dto';
-import { UpdateRoomDto } from './dto/update-room.dto';
-import { TokenGuard } from 'src/common/guards/token.guards';
-import { RolesGuard } from 'src/common/guards/role.guards';
-import { ApiBearerAuth, ApiConsumes, ApiOperation } from '@nestjs/swagger';
-import { Roles } from 'src/common/decorators/roles';
-import { UserRole } from '@prisma/client';
-import { FindAllRoomsDto } from './dto/query.dto';
+} from "@nestjs/common";
+import { RoomsService } from "./rooms.service";
+import { CreateRoomDto } from "./dto/create-room.dto";
+import { UpdateRoomDto } from "./dto/update-room.dto";
+import { TokenGuard } from "src/common/guards/token.guards";
+import { RolesGuard } from "src/common/guards/role.guards";
+import { ApiBearerAuth, ApiConsumes, ApiOperation } from "@nestjs/swagger";
+import { Roles } from "src/common/decorators/roles";
+import { UserRole } from "@prisma/client";
+import { FindAllRoomsDto } from "./dto/query.dto";
 
-@Controller('rooms')
+@Controller("rooms")
 @UseGuards(TokenGuard, RolesGuard)
 @ApiBearerAuth()
 export class RoomsController {
@@ -43,16 +43,16 @@ export class RoomsController {
 
   @ApiOperation({ summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}` })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id")
+  findOne(@Param("id", ParseIntPipe) id: number) {
     return this.roomsService.findOne(id);
   }
 
   @ApiOperation({ summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}` })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-  @Put(':id')
+  @Put(":id")
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @Body() payload: UpdateRoomDto,
   ) {
     return this.roomsService.update(id, payload);
@@ -60,8 +60,8 @@ export class RoomsController {
 
   @ApiOperation({ summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}` })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  @Delete(":id")
+  remove(@Param("id", ParseIntPipe) id: number) {
     return this.roomsService.remove(id);
   }
 }

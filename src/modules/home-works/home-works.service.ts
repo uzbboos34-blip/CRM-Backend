@@ -3,15 +3,15 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { CreateHomeWorkDto } from './dto/create-home-work.dto';
-import { UpdateHomeWorkDto } from './dto/update-home-work.dto';
-import { PrismaService } from 'src/core/database/prisma.service';
-import { UserRole, Status, HomeworkStatus } from '@prisma/client';
-import { uploadToSupabase } from 'src/core/utils/supabase-upload';
-import { join } from 'path';
-import * as fs from 'fs';
-import { createClient } from '@supabase/supabase-js';
+} from "@nestjs/common";
+import { CreateHomeWorkDto } from "./dto/create-home-work.dto";
+import { UpdateHomeWorkDto } from "./dto/update-home-work.dto";
+import { PrismaService } from "src/core/database/prisma.service";
+import { UserRole, Status, HomeworkStatus } from "@prisma/client";
+import { uploadToSupabase } from "src/core/utils/supabase-upload";
+import { join } from "path";
+import * as fs from "fs";
+import { createClient } from "@supabase/supabase-js";
 
 @Injectable()
 export class HomeWorksService {
@@ -22,7 +22,7 @@ export class HomeWorksService {
     const tg = await this.prisma.teachersGroup.findFirst({
       where: { teacher_id: teacherId, group_id: groupId },
     });
-    if (!tg) throw new ForbiddenException('Bu sizning guruhingiz emas');
+    if (!tg) throw new ForbiddenException("Bu sizning guruhingiz emas");
   }
 
   // ─── CREATE ────────────────────────────────────────────────────────────────
@@ -35,14 +35,18 @@ export class HomeWorksService {
     const groupId = Number(dto.group_id);
     const lessonId = Number(dto.lesson_id);
 
-    const group = await this.prisma.groups.findUnique({ where: { id: groupId } });
-    if (!group) throw new BadRequestException('Guruh topilmadi');
+    const group = await this.prisma.groups.findUnique({
+      where: { id: groupId },
+    });
+    if (!group) throw new BadRequestException("Guruh topilmadi");
 
     const lesson = await this.prisma.lesson.findFirst({
       where: { id: lessonId, group_id: groupId },
     });
     if (!lesson)
-      throw new BadRequestException('Bu dars bu guruhga tegishli emas yoki topilmadi');
+      throw new BadRequestException(
+        "Bu dars bu guruhga tegishli emas yoki topilmadi",
+      );
 
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, groupId);
@@ -63,7 +67,8 @@ export class HomeWorksService {
         description: dto.description,
         file: file || dto.file,
         video_url: video || dto.video_url,
-        teacher_id: currentUser.role === UserRole.TEACHER ? currentUser.id : null,
+        teacher_id:
+          currentUser.role === UserRole.TEACHER ? currentUser.id : null,
         user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
       },
       include: {
@@ -78,15 +83,17 @@ export class HomeWorksService {
         data: {
           group_id: groupId,
           lesson_id: lessonId,
-          title: dto.title + ' (Video)',
+          title: dto.title + " (Video)",
           video_url: video || dto.video_url,
-          teacher_id: currentUser.role === UserRole.TEACHER ? currentUser.id : null,
-          user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
+          teacher_id:
+            currentUser.role === UserRole.TEACHER ? currentUser.id : null,
+          user_id:
+            currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
         },
       });
     }
 
-    return { success: true, message: 'Uyga vazifa yaratildi', data: hw };
+    return { success: true, message: "Uyga vazifa yaratildi", data: hw };
   }
 
   // ─── FIND ALL BY GROUP (teacher/admin) ────────────────────────────────────
@@ -94,8 +101,10 @@ export class HomeWorksService {
     groupId: number,
     currentUser: { id: number; role: UserRole },
   ) {
-    const group = await this.prisma.groups.findUnique({ where: { id: groupId } });
-    if (!group) throw new NotFoundException('Guruh topilmadi');
+    const group = await this.prisma.groups.findUnique({
+      where: { id: groupId },
+    });
+    if (!group) throw new NotFoundException("Guruh topilmadi");
 
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, groupId);
@@ -103,7 +112,7 @@ export class HomeWorksService {
 
     const homeworks = await this.prisma.homeWork.findMany({
       where: { group_id: groupId },
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
       include: {
         lessons: { select: { id: true, topic: true, date: true } },
         _count: { select: { homeWorkAnswers: true } },
@@ -120,7 +129,7 @@ export class HomeWorksService {
       where: {
         group_id: groupId,
         status: Status.active,
-        students: { status: 'active' }
+        students: { status: "active" },
       },
     });
 
@@ -165,7 +174,7 @@ export class HomeWorksService {
     }
 
     const homeworks = await this.prisma.homeWork.findMany({
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
       select: {
         id: true,
         title: true,
@@ -192,7 +201,7 @@ export class HomeWorksService {
       },
     });
 
-    if (!hw) throw new NotFoundException('Uyga vazifa topilmadi');
+    if (!hw) throw new NotFoundException("Uyga vazifa topilmadi");
 
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, hw.group_id);
@@ -210,7 +219,7 @@ export class HomeWorksService {
       where: { id: hwId },
       include: { groups: true, lessons: true },
     });
-    if (!hw) throw new NotFoundException('Uyga vazifa topilmadi');
+    if (!hw) throw new NotFoundException("Uyga vazifa topilmadi");
 
     // Teacher faqat o'z guruhini ko'radi
     if (currentUser.role === UserRole.TEACHER) {
@@ -222,7 +231,7 @@ export class HomeWorksService {
       where: {
         group_id: hw.group_id,
         status: Status.active,
-        students: { status: 'active' }
+        students: { status: "active" },
       },
       include: {
         students: {
@@ -236,12 +245,14 @@ export class HomeWorksService {
       where: { homwork_id: hwId },
       include: {
         students: { select: { id: true, full_name: true, photo: true } },
-        homeWorkResults: { select: { id: true, grade: true, title: true, created_at: true } },
+        homeWorkResults: {
+          select: { id: true, grade: true, title: true, created_at: true },
+        },
       },
     });
 
     // Student ID → answer map
-    const answerMap = new Map<number, typeof answers[0]>();
+    const answerMap = new Map<number, (typeof answers)[0]>();
     answers.forEach((a) => answerMap.set(a.student_id, a));
 
     const kutilayotganlar: any[] = [];
@@ -257,32 +268,32 @@ export class HomeWorksService {
         bajarmaganlar.push({
           student: sg.students,
           answer: null,
-          status: 'not_done',
+          status: "not_done",
         });
       } else {
         const statusStr = answer.homeworkStatus.toLowerCase(); // pending, accepted, returned
 
-        if (statusStr === 'pending') {
+        if (statusStr === "pending") {
           kutilayotganlar.push({
             student: sg.students,
             answer,
-            status: 'pending',
+            status: "pending",
             submitted_at: answer.created_at,
           });
-        } else if (statusStr === 'accepted') {
+        } else if (statusStr === "accepted") {
           qabulQilinganlar.push({
             student: sg.students,
             answer,
             result: answer.homeWorkResults?.[0],
-            status: 'accepted',
+            status: "accepted",
             submitted_at: answer.created_at,
           });
-        } else if (statusStr === 'returned') {
+        } else if (statusStr === "returned") {
           qaytarilganlar.push({
             student: sg.students,
             answer,
             result: answer.homeWorkResults?.[0],
-            status: 'returned',
+            status: "returned",
             submitted_at: answer.created_at,
           });
         }
@@ -327,7 +338,7 @@ export class HomeWorksService {
       where: { id: hwId },
       include: { lessons: true, groups: true },
     });
-    if (!hw) throw new NotFoundException('Uyga vazifa topilmadi');
+    if (!hw) throw new NotFoundException("Uyga vazifa topilmadi");
 
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, hw.group_id);
@@ -337,14 +348,14 @@ export class HomeWorksService {
       where: { id: studentId },
       select: { id: true, full_name: true, photo: true, phone: true },
     });
-    if (!student) throw new NotFoundException('Student topilmadi');
+    if (!student) throw new NotFoundException("Student topilmadi");
 
     const answer = await this.prisma.homeWorkAnswer.findFirst({
       where: { homwork_id: hwId, student_id: studentId },
       include: {
         homeWorkResults: {
           select: { id: true, grade: true, title: true, created_at: true },
-          orderBy: { created_at: 'desc' },
+          orderBy: { created_at: "desc" },
           take: 1,
         },
       },
@@ -363,7 +374,7 @@ export class HomeWorksService {
     const result = answer?.homeWorkResults?.[0];
     let status: string;
     if (!answer) {
-      status = 'not_done';
+      status = "not_done";
     } else {
       status = answer.homeworkStatus.toLowerCase();
     }
@@ -403,14 +414,14 @@ export class HomeWorksService {
     currentUser: { id: number; role: UserRole },
   ) {
     if (grade < 0 || grade > 100) {
-      throw new BadRequestException('Ball 0 dan 100 gacha bo\'lishi kerak');
+      throw new BadRequestException("Ball 0 dan 100 gacha bo'lishi kerak");
     }
 
     const answer = await this.prisma.homeWorkAnswer.findUnique({
       where: { id: answerId },
       include: { homeWorks: { select: { group_id: true } } },
     });
-    if (!answer) throw new NotFoundException('Topshiriq topilmadi');
+    if (!answer) throw new NotFoundException("Topshiriq topilmadi");
 
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, answer.homeWorks.group_id);
@@ -425,23 +436,25 @@ export class HomeWorksService {
       data: {
         homework_answer_id: answerId,
         grade,
-        title: comment || (grade >= 60 ? 'Qabul qilindi' : 'Qaytarildi'),
-        techer_id: currentUser.role === UserRole.TEACHER ? currentUser.id : null,
+        title: comment || (grade >= 60 ? "Qabul qilindi" : "Qaytarildi"),
+        techer_id:
+          currentUser.role === UserRole.TEACHER ? currentUser.id : null,
         user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
       },
     });
 
-    const statusEnum = grade >= 60 ? 'ACCEPTED' : 'RETURNED';
+    const statusEnum = grade >= 60 ? "ACCEPTED" : "RETURNED";
 
     await this.prisma.homeWorkAnswer.update({
       where: { id: answerId },
       data: { homeworkStatus: statusEnum as any },
     });
 
-    const status = grade >= 60 ? 'accepted' : 'returned';
-    const message = grade >= 60
-      ? `Vazifa qabul qilindi (${grade} ball)`
-      : `Vazifa qaytarildi (${grade} ball)`;
+    const status = grade >= 60 ? "accepted" : "returned";
+    const message =
+      grade >= 60
+        ? `Vazifa qabul qilindi (${grade} ball)`
+        : `Vazifa qaytarildi (${grade} ball)`;
 
     return { success: true, message, data: { result, status } };
   }
@@ -454,7 +467,7 @@ export class HomeWorksService {
     files: string[],
   ) {
     const hw = await this.prisma.homeWork.findUnique({ where: { id: hwId } });
-    if (!hw) throw new NotFoundException('Uyga vazifa topilmadi');
+    if (!hw) throw new NotFoundException("Uyga vazifa topilmadi");
 
     // Check student is in this group
     const sg = await this.prisma.studentGroup.findFirst({
@@ -462,10 +475,10 @@ export class HomeWorksService {
         student_id: studentId,
         group_id: hw.group_id,
         status: Status.active,
-        students: { status: 'active' }
+        students: { status: "active" },
       },
     });
-    if (!sg) throw new ForbiddenException('Siz bu guruhga tegishli emassiz');
+    if (!sg) throw new ForbiddenException("Siz bu guruhga tegishli emassiz");
 
     // Check if already submitted
     const existing = await this.prisma.homeWorkAnswer.findFirst({
@@ -485,25 +498,29 @@ export class HomeWorksService {
       const updated = await this.prisma.homeWorkAnswer.update({
         where: { id: existing.id },
         data: {
-          title: comment || 'Uyga vazifa topshirildi',
+          title: comment || "Uyga vazifa topshirildi",
           file: fileJson,
-          homeworkStatus: 'PENDING',
+          homeworkStatus: "PENDING",
         },
       });
-      return { success: true, message: 'Uyga vazifa yangilandi', data: updated };
+      return {
+        success: true,
+        message: "Uyga vazifa yangilandi",
+        data: updated,
+      };
     }
 
     const answer = await this.prisma.homeWorkAnswer.create({
       data: {
         student_id: studentId,
         homwork_id: hwId,
-        title: comment || 'Uyga vazifa topshirildi',
+        title: comment || "Uyga vazifa topshirildi",
         file: fileJson,
-        homeworkStatus: 'PENDING',
+        homeworkStatus: "PENDING",
       },
     });
 
-    return { success: true, message: 'Uyga vazifa topshirildi', data: answer };
+    return { success: true, message: "Uyga vazifa topshirildi", data: answer };
   }
 
   // ─── UPDATE ───────────────────────────────────────────────────────────────
@@ -515,7 +532,7 @@ export class HomeWorksService {
     video?: string,
   ) {
     const hw = await this.prisma.homeWork.findUnique({ where: { id } });
-    if (!hw) throw new NotFoundException('Uyga vazifa topilmadi');
+    if (!hw) throw new NotFoundException("Uyga vazifa topilmadi");
 
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, hw.group_id);
@@ -527,12 +544,14 @@ export class HomeWorksService {
     // Upload new files to Supabase if provided, and delete old ones
     if (file) {
       if (hw.file) {
-        const oldPath = join(process.cwd(), 'src', 'uploads', hw.file);
-        try { fs.unlinkSync(oldPath); } catch {}
+        const oldPath = join(process.cwd(), "src", "uploads", hw.file);
+        try {
+          fs.unlinkSync(oldPath);
+        } catch {}
         if (url && key) {
           try {
             const supabase = createClient(url, key);
-            await supabase.storage.from('NajotEdu').remove([hw.file]);
+            await supabase.storage.from("NajotEdu").remove([hw.file]);
           } catch {}
         }
       }
@@ -541,18 +560,20 @@ export class HomeWorksService {
 
     if (video) {
       if (hw.video_url) {
-        if (hw.video_url.includes('supabase.co/storage')) {
+        if (hw.video_url.includes("supabase.co/storage")) {
           try {
-            const parts = hw.video_url.split('/');
+            const parts = hw.video_url.split("/");
             const filename = parts[parts.length - 1];
             if (filename && url && key) {
               const supabase = createClient(url, key);
-              await supabase.storage.from('NajotEdu').remove([filename]);
+              await supabase.storage.from("NajotEdu").remove([filename]);
             }
           } catch {}
-        } else if (!hw.video_url.startsWith('http')) {
-          const oldPath = join(process.cwd(), 'src', 'uploads', hw.video_url);
-          try { fs.unlinkSync(oldPath); } catch {}
+        } else if (!hw.video_url.startsWith("http")) {
+          const oldPath = join(process.cwd(), "src", "uploads", hw.video_url);
+          try {
+            fs.unlinkSync(oldPath);
+          } catch {}
         }
       }
       await uploadToSupabase(video);
@@ -573,7 +594,7 @@ export class HomeWorksService {
       },
     });
 
-    return { success: true, message: 'Uyga vazifa yangilandi', data: updated };
+    return { success: true, message: "Uyga vazifa yangilandi", data: updated };
   }
 
   // ─── DELETE ───────────────────────────────────────────────────────────────
@@ -585,11 +606,11 @@ export class HomeWorksService {
           select: {
             id: true,
             file: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
-    if (!hw) throw new NotFoundException('Uyga vazifa topilmadi');
+    if (!hw) throw new NotFoundException("Uyga vazifa topilmadi");
 
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, hw.group_id);
@@ -605,12 +626,14 @@ export class HomeWorksService {
           const files = JSON.parse(answer.file);
           if (Array.isArray(files)) {
             for (const file of files) {
-              const filePath = join(process.cwd(), 'src', 'uploads', file);
-              try { fs.unlinkSync(filePath); } catch {}
+              const filePath = join(process.cwd(), "src", "uploads", file);
+              try {
+                fs.unlinkSync(filePath);
+              } catch {}
               if (url && key) {
                 try {
                   const supabase = createClient(url, key);
-                  await supabase.storage.from('NajotEdu').remove([file]);
+                  await supabase.storage.from("NajotEdu").remove([file]);
                 } catch {}
               }
             }
@@ -620,46 +643,50 @@ export class HomeWorksService {
     }
 
     // 2. Delete all results for all answers of this homework
-    const answerIds = hw.homeWorkAnswers.map(a => a.id);
+    const answerIds = hw.homeWorkAnswers.map((a) => a.id);
     if (answerIds.length > 0) {
       await this.prisma.homeWorkResult.deleteMany({
         where: {
-          homework_answer_id: { in: answerIds }
-        }
+          homework_answer_id: { in: answerIds },
+        },
       });
       // 3. Delete all answers of this homework
       await this.prisma.homeWorkAnswer.deleteMany({
         where: {
-          homwork_id: id
-        }
+          homwork_id: id,
+        },
       });
     }
 
     // 4. Delete homework attachment file from Supabase/disk
     if (hw.file) {
-      const filePath = join(process.cwd(), 'src', 'uploads', hw.file);
-      try { fs.unlinkSync(filePath); } catch {}
+      const filePath = join(process.cwd(), "src", "uploads", hw.file);
+      try {
+        fs.unlinkSync(filePath);
+      } catch {}
       if (url && key) {
         try {
           const supabase = createClient(url, key);
-          await supabase.storage.from('NajotEdu').remove([hw.file]);
+          await supabase.storage.from("NajotEdu").remove([hw.file]);
         } catch {}
       }
     }
 
     // 5. Delete homework video file if any
-    if (hw.video_url && hw.video_url.includes('supabase.co/storage')) {
+    if (hw.video_url && hw.video_url.includes("supabase.co/storage")) {
       try {
-        const parts = hw.video_url.split('/');
+        const parts = hw.video_url.split("/");
         const filename = parts[parts.length - 1];
         if (filename && url && key) {
           const supabase = createClient(url, key);
-          await supabase.storage.from('NajotEdu').remove([filename]);
+          await supabase.storage.from("NajotEdu").remove([filename]);
         }
       } catch {}
-    } else if (hw.video_url && !hw.video_url.startsWith('http')) {
-      const filePath = join(process.cwd(), 'src', 'uploads', hw.video_url);
-      try { fs.unlinkSync(filePath); } catch {}
+    } else if (hw.video_url && !hw.video_url.startsWith("http")) {
+      const filePath = join(process.cwd(), "src", "uploads", hw.video_url);
+      try {
+        fs.unlinkSync(filePath);
+      } catch {}
     }
 
     // 6. Delete the homework itself

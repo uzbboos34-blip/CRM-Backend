@@ -1,13 +1,13 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import * as fs from 'fs';
-import * as path from 'path';
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import * as fs from "fs";
+import * as path from "path";
 
 let supabaseClient: SupabaseClient | null = null;
 
 export async function uploadToSupabase(filename: string): Promise<string> {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_KEY;
-  const filePath = path.join(process.cwd(), 'src', 'uploads', filename);
+  const filePath = path.join(process.cwd(), "src", "uploads", filename);
 
   if (!url || !key) {
     console.warn("Supabase credentials missing, keeping file locally.");
@@ -21,25 +21,25 @@ export async function uploadToSupabase(filename: string): Promise<string> {
   try {
     const fileBuffer = fs.readFileSync(filePath);
     const ext = path.extname(filename).toLowerCase();
-    
+
     // Define mime type
-    let contentType = 'application/octet-stream';
-    if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
-    else if (ext === '.png') contentType = 'image/png';
-    else if (ext === '.gif') contentType = 'image/gif';
-    else if (ext === '.pdf') contentType = 'application/pdf';
-    else if (ext === '.mp4') contentType = 'video/mp4';
-    else if (ext === '.zip') contentType = 'application/zip';
+    let contentType = "application/octet-stream";
+    if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
+    else if (ext === ".png") contentType = "image/png";
+    else if (ext === ".gif") contentType = "image/gif";
+    else if (ext === ".pdf") contentType = "application/pdf";
+    else if (ext === ".mp4") contentType = "video/mp4";
+    else if (ext === ".zip") contentType = "application/zip";
 
     if (!supabaseClient) {
       supabaseClient = createClient(url, key);
     }
 
     const { error } = await supabaseClient.storage
-      .from('NajotEdu')
+      .from("NajotEdu")
       .upload(filename, fileBuffer, {
         contentType,
-        duplex: 'half',
+        upsert: true,
       });
 
     if (error) {
@@ -51,10 +51,10 @@ export async function uploadToSupabase(filename: string): Promise<string> {
     try {
       fs.unlinkSync(filePath);
     } catch (e) {
-      console.error('Failed to delete temporary local file:', e);
+      console.error("Failed to delete temporary local file:", e);
     }
   } catch (err) {
-    console.error('Error during Supabase upload:', err);
+    console.error("Error during Supabase upload:", err);
   }
 
   return filename;

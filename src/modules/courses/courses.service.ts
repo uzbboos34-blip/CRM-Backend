@@ -2,12 +2,12 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-} from '@nestjs/common';
-import { CreateCourseDto } from './dto/create-course.dto';
-import { UpdateCourseDto } from './dto/update-course.dto';
-import { PrismaService } from 'src/core/database/prisma.service';
-import { Status, WeekDay } from '@prisma/client';
-import { FindAllCoursesDto } from './dto/query.dto';
+} from "@nestjs/common";
+import { CreateCourseDto } from "./dto/create-course.dto";
+import { UpdateCourseDto } from "./dto/update-course.dto";
+import { PrismaService } from "src/core/database/prisma.service";
+import { Status, WeekDay } from "@prisma/client";
+import { FindAllCoursesDto } from "./dto/query.dto";
 
 @Injectable()
 export class CoursesService {
@@ -20,7 +20,7 @@ export class CoursesService {
     });
 
     if (course) {
-      throw new ConflictException('Course already exists');
+      throw new ConflictException("Course already exists");
     }
 
     const res = await this.prisma.courses.create({
@@ -31,13 +31,12 @@ export class CoursesService {
 
     return {
       success: true,
-      message: 'Course created successfully',
+      message: "Course created successfully",
     };
   }
 
   async findAll(query: FindAllCoursesDto) {
-    
-    const where : any = {};
+    const where: any = {};
 
     if (query.status) {
       where.status = query.status;
@@ -68,8 +67,8 @@ export class CoursesService {
     return await this.prisma.courses.findMany({
       where,
       orderBy: {
-        id: 'asc'
-      }
+        id: "asc",
+      },
     });
   }
 
@@ -77,7 +76,7 @@ export class CoursesService {
     const course = await this.prisma.courses.findUnique({ where: { id } });
 
     if (!course) {
-      throw new BadRequestException('Course not fount');
+      throw new BadRequestException("Course not fount");
     }
 
     return {
@@ -89,7 +88,7 @@ export class CoursesService {
     const course = await this.prisma.courses.findUnique({ where: { id } });
 
     if (!course) {
-      throw new BadRequestException('Course not fount');
+      throw new BadRequestException("Course not fount");
     }
 
     await this.prisma.courses.update({
@@ -99,7 +98,7 @@ export class CoursesService {
 
     return {
       success: true,
-      message: 'Course update success',
+      message: "Course update success",
     };
   }
 
@@ -107,19 +106,19 @@ export class CoursesService {
     const course = await this.prisma.courses.findUnique({ where: { id } });
 
     if (!course) {
-      throw new BadRequestException('Course not fount');
+      throw new BadRequestException("Course not fount");
     }
 
     await this.prisma.courses.update({
       where: { id },
       data: {
-        status: Status.inactive
-      }
+        status: Status.inactive,
+      },
     });
 
     return {
       success: true,
-      message: 'Course delete success',
+      message: "Course delete success",
     };
   }
 }

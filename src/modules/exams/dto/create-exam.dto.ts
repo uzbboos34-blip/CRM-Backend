@@ -1,15 +1,21 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsDateString } from 'class-validator';
-import { Type } from 'class-transformer';
+import { ApiProperty } from "@nestjs/swagger";
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsDateString,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class CreateExamDto {
-  @ApiProperty({ example: 1, description: 'Guruh ID' })
+  @ApiProperty({ example: 1, description: "Guruh ID" })
   @IsNotEmpty()
   @Type(() => Number)
   @IsNumber()
   group_id: number;
 
-  @ApiProperty({ example: 'Backend yakuniy imtihon' })
+  @ApiProperty({ example: "Backend yakuniy imtihon" })
   @IsNotEmpty()
   @IsString()
   title: string;
@@ -19,7 +25,7 @@ export class CreateExamDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ required: false, description: 'Imtihon boshlanish vaqti' })
+  @ApiProperty({ required: false, description: "Imtihon boshlanish vaqti" })
   @IsOptional()
   @IsString()
   file?: string;
@@ -28,7 +34,7 @@ export class CreateExamDto {
   @IsDateString()
   start_date?: string;
 
-  @ApiProperty({ required: false, description: 'Imtihon tugash vaqti' })
+  @ApiProperty({ required: false, description: "Imtihon tugash vaqti" })
   @IsOptional()
   @IsDateString()
   end_date?: string;

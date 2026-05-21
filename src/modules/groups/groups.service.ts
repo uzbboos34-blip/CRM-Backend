@@ -2,21 +2,20 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { CreateGroupDto } from './dto/create-group.dto';
-import { UpdateGroupDto } from './dto/update-group.dto';
-import { PrismaService } from 'src/core/database/prisma.service';
-import { GroupStatus, Status, StudentStatus } from '@prisma/client';
-import { FindAllGroupsDto } from './dto/query.dto';
+} from "@nestjs/common";
+import { CreateGroupDto } from "./dto/create-group.dto";
+import { UpdateGroupDto } from "./dto/update-group.dto";
+import { PrismaService } from "src/core/database/prisma.service";
+import { GroupStatus, Status, StudentStatus } from "@prisma/client";
+import { FindAllGroupsDto } from "./dto/query.dto";
 
 @Injectable()
 export class GroupsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
   async create(payload: CreateGroupDto) {
-
     const timeToMinutes = (time: string) => {
-      const [hours, minutes] = time.split(':').map(Number);
-      return hours * 60 + minutes
+      const [hours, minutes] = time.split(":").map(Number);
+      return hours * 60 + minutes;
     };
 
     const group = await this.prisma.groups.findFirst({
@@ -26,29 +25,29 @@ export class GroupsService {
     });
 
     if (group) {
-      throw new ConflictException('Group already exists');
+      throw new ConflictException("Group already exists");
     }
 
     const existCourse = await this.prisma.courses.findFirst({
       where: {
         id: payload.course_id,
-        status: Status.active
+        status: Status.active,
       },
     });
 
     if (!existCourse) {
-      throw new NotFoundException('Active course not foundd');
+      throw new NotFoundException("Active course not foundd");
     }
 
     const room = await this.prisma.rooms.findFirst({
       where: {
         id: payload.room_id,
-        status: Status.active
+        status: Status.active,
       },
     });
 
     if (!room) {
-      throw new NotFoundException('Active room not found');
+      throw new NotFoundException("Active room not found");
     }
 
     const startNew = timeToMinutes(payload.start_time);
@@ -57,67 +56,70 @@ export class GroupsService {
     const roomGroups = await this.prisma.groups.findMany({
       where: {
         room_id: payload.room_id,
-        OR: [
-          { status: GroupStatus.active },
-          { status: GroupStatus.planned }
-        ]
+        OR: [{ status: GroupStatus.active }, { status: GroupStatus.planned }],
       },
       select: {
         start_time: true,
         week_day: true,
         course: {
           select: {
-            duration_hours: true
-          }
-        }
+            duration_hours: true,
+          },
+        },
       },
-    })
+    });
 
-    const RoomTime = roomGroups.some(el => {
-      const hasCommonDay = el.week_day.some(day => payload.week_day.includes(day));
+    const RoomTime = roomGroups.some((el) => {
+      const hasCommonDay = el.week_day.some((day) =>
+        payload.week_day.includes(day),
+      );
       if (!hasCommonDay) return false;
 
       const start = timeToMinutes(el.start_time);
       const end = start + el.course.duration_hours * 60;
-      return start < endNew && end > startNew
-    })
+      return start < endNew && end > startNew;
+    });
 
     if (RoomTime) {
-      throw new ConflictException('Room is already reserved');
+      throw new ConflictException("Room is already reserved");
     }
 
-    let teacher_ids = Array()
+    let teacher_ids = [];
     if (payload.teachers?.length) {
       teacher_ids = await this.prisma.teachers.findMany({
         where: { id: { in: payload.teachers }, status: Status.active },
         select: {
-          id: true
-        }
-      })
+          id: true,
+        },
+      });
 
       if (teacher_ids.length !== payload.teachers?.length) {
-        throw new NotFoundException('Ba\'zi teacherlar topilmadi yoki active emas');
+        throw new NotFoundException(
+          "Ba'zi teacherlar topilmadi yoki active emas",
+        );
       }
     }
 
-    let student_ids = Array()
+    let student_ids = [];
     if (payload.students?.length) {
       student_ids = await this.prisma.students.findMany({
         where: {
           id: { in: payload.students },
-          status: StudentStatus.active
+          status: StudentStatus.active,
         },
         select: {
-          id: true
-        }
+          id: true,
+        },
       });
       if (student_ids.length !== payload.students.length) {
-        throw new NotFoundException('Ba\'zi studentlar topilmadi yoki active emas');
+        throw new NotFoundException(
+          "Ba'zi studentlar topilmadi yoki active emas",
+        );
       }
     }
 
     if (payload.week_day.length === 0) {
-      throw new NotFoundException('Week days are required');
+      throw new NotFoundException("Week days are required");
     }
 
     const { teachers, students, ...groupData } = payload;
@@ -127,21 +129,25 @@ export class GroupsService {
         ...groupData,
         start_date: new Date(payload.start_date),
         end_date: new Date(payload.end_date),
-        teachersGroups: payload.teachers?.length ? {
-          create: payload.teachers?.map((teacher) => ({
-            teacher_id: teacher
-          })),
-        } : undefined,
-        studentGroups: payload.students?.length ? {
-          create: payload.students?.map((student) => ({
-            student_id: student
-          })),
-        } : undefined,
-      }
+        teachersGroups: payload.teachers?.length
+          ? {
+              create: payload.teachers?.map((teacher) => ({
+                teacher_id: teacher,
+              })),
+            }
+          : undefined,
+        studentGroups: payload.students?.length
+          ? {
+              create: payload.students?.map((student) => ({
+                student_id: student,
+              })),
+            }
+          : undefined,
+      },
     });
     return {
       success: true,
-      message: 'Group created successfully',
+      message: "Group created successfully",
     };
   }
 
@@ -152,7 +158,7 @@ export class GroupsService {
       where.status = query.status;
     } else {
       where.status = {
-        in: [GroupStatus.active, GroupStatus.planned]
+        in: [GroupStatus.active, GroupStatus.planned],
       };
     }
 
@@ -183,7 +189,7 @@ export class GroupsService {
     const groups = await this.prisma.groups.findMany({
       where,
       orderBy: {
-        id: 'asc'
+        id: "asc",
       },
       select: {
         id: true,
@@ -198,8 +204,8 @@ export class GroupsService {
         teachersGroups: {
           where: {
             teacher: {
-              status: Status.active
-            }
+              status: Status.active,
+            },
           },
           select: {
             teacher: {
@@ -215,8 +221,8 @@ export class GroupsService {
           where: {
             status: Status.active,
             students: {
-              status: 'active'
-            }
+              status: "active",
+            },
           },
           select: {
             students: {
@@ -230,17 +236,16 @@ export class GroupsService {
         rooms: {
           select: {
             id: true,
-            name: true
-          }
+            name: true,
+          },
         },
         course: {
           select: {
             id: true,
             name: true,
-            duration_hours: true
-          }
-        }
-
+            duration_hours: true,
+          },
+        },
       },
     });
 
@@ -257,7 +262,7 @@ export class GroupsService {
       students: group.studentGroups?.length || 0,
       course: group.course.name,
       course_duration: group.course.duration_hours,
-      rooms: group.rooms.name
+      rooms: group.rooms.name,
     }));
   }
 
@@ -269,7 +274,7 @@ export class GroupsService {
         course: true,
         teachersGroups: {
           where: {
-            teacher: { status: 'active' }
+            teacher: { status: "active" },
           },
           include: {
             teacher: {
@@ -277,24 +282,24 @@ export class GroupsService {
                 id: true,
                 full_name: true,
                 photo: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         studentGroups: {
           where: {
-            students: { status: 'active' },
-            status: 'active'
+            students: { status: "active" },
+            status: "active",
           },
           include: {
-            students: true
-          }
-        }
-      }
+            students: true,
+          },
+        },
+      },
     });
 
     if (!group) {
-      throw new NotFoundException('Group not found');
+      throw new NotFoundException("Group not found");
     }
 
     const groupStudentsCount = await this.prisma.studentGroup.count({
@@ -302,14 +307,14 @@ export class GroupsService {
         group_id: id,
         status: Status.active,
         students: {
-          status: 'active'
-        }
-      }
+          status: "active",
+        },
+      },
     });
 
     const now = new Date();
     const studentsList = group.studentGroups || [];
-    
+
     const totalAge = studentsList.reduce((sum, item) => {
       if (!item.students?.birth_date) return sum;
       const birthDate = new Date(item.students.birth_date);
@@ -317,39 +322,63 @@ export class GroupsService {
 
       let age = now.getFullYear() - birthDate.getFullYear();
       const monthDiff = now.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && now.getDate() < birthDate.getDate())
+      ) {
         age--;
       }
       return sum + age;
     }, 0);
 
-    const averageAge = studentsList.length > 0 ? totalAge / studentsList.length : 0;
+    const averageAge =
+      studentsList.length > 0 ? totalAge / studentsList.length : 0;
 
     // Calculate lesson counts
     let totalLessonsCount = 0;
     let firstMonthLessonsCount = 0;
-    
+
     if (group.start_date && group.week_day && group.course?.duration_month) {
       const dayMap = {
-        'Dushanba': 1, 'Seshanba': 2, 'Chorshanba': 3, 'Payshanba': 4, 'Juma': 5, 'Shanba': 6, 'Yakshanba': 0,
-        'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0,
-        '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 0
+        Dushanba: 1,
+        Seshanba: 2,
+        Chorshanba: 3,
+        Payshanba: 4,
+        Juma: 5,
+        Shanba: 6,
+        Yakshanba: 0,
+        Monday: 1,
+        Tuesday: 2,
+        Wednesday: 3,
+        Thursday: 4,
+        Friday: 5,
+        Saturday: 6,
+        Sunday: 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 0,
       };
-      const lessonDays = group.week_day.map(d => dayMap[d]).filter(d => d !== undefined);
-      
+      const lessonDays = group.week_day
+        .map((d) => dayMap[d])
+        .filter((d) => d !== undefined);
+
       for (let m = 0; m < group.course.duration_month; m++) {
         const monthDate = new Date(group.start_date);
         monthDate.setMonth(monthDate.getMonth() + m);
         const year = monthDate.getFullYear();
         const month = monthDate.getMonth();
-        
+
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         let monthCount = 0;
 
         for (let i = 1; i <= daysInMonth; i++) {
           const date = new Date(year, month, i);
           if (m === 0 && date < group.start_date) continue;
-          
+
           if (lessonDays.includes(date.getDay())) {
             monthCount++;
             totalLessonsCount++;
@@ -362,7 +391,7 @@ export class GroupsService {
     const dataFormatter = {
       ...group,
       students_count: groupStudentsCount,
-      teachers: group.teachersGroups.map(g => g.teacher),
+      teachers: group.teachersGroups.map((g) => g.teacher),
       averageAge: averageAge,
       room_capacity: group.rooms?.capacity,
       room: group.rooms, // For frontend compat
@@ -382,7 +411,7 @@ export class GroupsService {
     });
 
     if (!existingGroup) {
-      throw new NotFoundException('Group not found');
+      throw new NotFoundException("Group not found");
     }
 
     if (payload.name) {
@@ -394,7 +423,7 @@ export class GroupsService {
       });
 
       if (group) {
-        throw new ConflictException('Group already exists');
+        throw new ConflictException("Group already exists");
       }
     }
 
@@ -402,12 +431,14 @@ export class GroupsService {
       const teacher = await this.prisma.teachers.findMany({
         where: {
           id: { in: payload.teachers },
-          status: Status.active
+          status: Status.active,
         },
       });
 
       if (teacher.length !== payload.teachers.length) {
-        throw new NotFoundException('Ba\'zi teacherlar topilmadi yoki active emas');
+        throw new NotFoundException(
+          "Ba'zi teacherlar topilmadi yoki active emas",
+        );
       }
     }
 
@@ -415,12 +446,12 @@ export class GroupsService {
       const course = await this.prisma.courses.findFirst({
         where: {
           id: payload.course_id,
-          status: Status.active
+          status: Status.active,
         },
       });
 
       if (!course) {
-        throw new NotFoundException('Active course not foundd');
+        throw new NotFoundException("Active course not foundd");
       }
     }
 
@@ -433,11 +464,11 @@ export class GroupsService {
       });
 
       if (!room) {
-        throw new NotFoundException('Active room not found');
+        throw new NotFoundException("Active room not found");
       }
     }
     const { teachers, students, ...groupData } = payload;
-    let data: any = { ...groupData };
+    const data: any = { ...groupData };
 
     if (payload.start_date) {
       data.start_date = new Date(payload.start_date);
@@ -449,7 +480,7 @@ export class GroupsService {
 
     await this.prisma.groups.update({
       where: { id },
-      data: data
+      data: data,
     });
 
     if (teachers) {
@@ -492,7 +523,7 @@ export class GroupsService {
 
     return {
       success: true,
-      message: 'Group updated successfully',
+      message: "Group updated successfully",
     };
   }
 
@@ -502,19 +533,19 @@ export class GroupsService {
     });
 
     if (!group) {
-      throw new NotFoundException('Group not found');
+      throw new NotFoundException("Group not found");
     }
 
     await this.prisma.groups.update({
       where: { id },
       data: {
-        status: GroupStatus.cancelled
+        status: GroupStatus.cancelled,
       },
     });
 
     return {
       success: true,
-      message: 'Group deleted successfully',
+      message: "Group deleted successfully",
     };
   }
 
@@ -525,13 +556,13 @@ export class GroupsService {
         course: {
           select: {
             duration_month: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     if (!group) {
-      throw new NotFoundException('Group not found');
+      throw new NotFoundException("Group not found");
     }
 
     const { start_date, week_day } = group;
@@ -539,17 +570,24 @@ export class GroupsService {
 
     // Day names mapping
     const dayMap = {
-      'sunday': 0, 'yakshanba': 0,
-      'monday': 1, 'dushanba': 1,
-      'tuesday': 2, 'seshanba': 2,
-      'wednesday': 3, 'chorshanba': 3,
-      'thursday': 4, 'payshanba': 4,
-      'friday': 5, 'juma': 5,
-      'saturday': 6, 'shanba': 6
+      sunday: 0,
+      yakshanba: 0,
+      monday: 1,
+      dushanba: 1,
+      tuesday: 2,
+      seshanba: 2,
+      wednesday: 3,
+      chorshanba: 3,
+      thursday: 4,
+      payshanba: 4,
+      friday: 5,
+      juma: 5,
+      saturday: 6,
+      shanba: 6,
     };
 
     // Convert week_day to numbers [0-6]
-    const weekDays = week_day.map(d => {
+    const weekDays = week_day.map((d) => {
       const lower = d.toLowerCase().trim();
       if (dayMap[lower] !== undefined) return dayMap[lower];
       const val = parseInt(d);
@@ -557,10 +595,28 @@ export class GroupsService {
     });
 
     const months = [
-      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
-      'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
+      "Yanvar",
+      "Fevral",
+      "Mart",
+      "Aprel",
+      "May",
+      "Iyun",
+      "Iyul",
+      "Avgust",
+      "Sentyabr",
+      "Oktyabr",
+      "Noyabr",
+      "Dekabr",
     ];
-    const daysUz = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+    const daysUz = [
+      "Yakshanba",
+      "Dushanba",
+      "Seshanba",
+      "Chorshanba",
+      "Payshanba",
+      "Juma",
+      "Shanba",
+    ];
 
     const result = [];
     let currentStartDate = new Date(start_date);
@@ -570,14 +626,14 @@ export class GroupsService {
       const monthEnd = new Date(currentStartDate);
       monthEnd.setMonth(monthEnd.getMonth() + 1);
 
-      let tempDate = new Date(currentStartDate);
+      const tempDate = new Date(currentStartDate);
       while (tempDate < monthEnd) {
         const dayIdx = tempDate.getDay();
         if (weekDays.includes(dayIdx)) {
           lessons.push({
-            date: tempDate.toISOString().split('T')[0],
+            date: tempDate.toISOString().split("T")[0],
             day_of_month: tempDate.getDate(),
-            day_name: daysUz[dayIdx]
+            day_name: daysUz[dayIdx],
           });
         }
         tempDate.setDate(tempDate.getDate() + 1);
@@ -587,7 +643,7 @@ export class GroupsService {
         learning_month: i,
         month_name: months[currentStartDate.getMonth()],
         year: currentStartDate.getFullYear(),
-        lessons: lessons
+        lessons: lessons,
       });
 
       currentStartDate = monthEnd;

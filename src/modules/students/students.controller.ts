@@ -12,25 +12,25 @@ import {
   Put,
   UseGuards,
   Query,
-} from '@nestjs/common';
-import { StudentsService } from './students.service';
+} from "@nestjs/common";
+import { StudentsService } from "./students.service";
 import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiOperation,
-} from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { TokenGuard } from 'src/common/guards/token.guards';
-import { RolesGuard } from 'src/common/guards/role.guards';
-import { Roles } from 'src/common/decorators/roles';
-import { UserRole } from '@prisma/client';
-import { CreateStudentDto } from './dto/create-student.dto';
-import { UpdateStudentDto } from './dto/update-student.dto';
-import { FindAllStudentsDto } from './dto/query.dto';
+} from "@nestjs/swagger";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { diskStorage } from "multer";
+import { TokenGuard } from "src/common/guards/token.guards";
+import { RolesGuard } from "src/common/guards/role.guards";
+import { Roles } from "src/common/decorators/roles";
+import { UserRole } from "@prisma/client";
+import { CreateStudentDto } from "./dto/create-student.dto";
+import { UpdateStudentDto } from "./dto/update-student.dto";
+import { FindAllStudentsDto } from "./dto/query.dto";
 
-@Controller('students')
+@Controller("students")
 @UseGuards(TokenGuard, RolesGuard)
 @ApiBearerAuth()
 export class StudentsController {
@@ -39,28 +39,28 @@ export class StudentsController {
   @ApiOperation({ summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}` })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
   @Post()
-  @ApiConsumes('multipart/form-data')
+  @ApiConsumes("multipart/form-data")
   @ApiBody({
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        full_name: { type: 'string' },
-        email: { type: 'string' },
-        password: { type: 'string' },
-        phone: { type: 'string' },
-        address: { type: 'string' },
-        photo: { type: 'string', format: 'binary' },
-        birth_date: { type: 'string', example:"2006-02-07" },
-        groups: { type: 'array', items: { type: 'number' }, example: [1, 2] },
+        full_name: { type: "string" },
+        email: { type: "string" },
+        password: { type: "string" },
+        phone: { type: "string" },
+        address: { type: "string" },
+        photo: { type: "string", format: "binary" },
+        birth_date: { type: "string", example: "2006-02-07" },
+        groups: { type: "array", items: { type: "number" }, example: [1, 2] },
       },
     },
   })
   @UseInterceptors(
-    FileInterceptor('photo', {
+    FileInterceptor("photo", {
       storage: diskStorage({
-        destination: './src/uploads',
+        destination: "./src/uploads",
         filename: (req, file, cb) => {
-          const filename = Date.now() + '.' + file.originalname.split('.')[1];
+          const filename = Date.now() + "." + file.originalname.split(".")[1];
           cb(null, filename);
         },
       }),
@@ -77,7 +77,7 @@ export class StudentsController {
     summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}`,
   })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-  @Get('all')
+  @Get("all")
   findAll(@Query() query: FindAllStudentsDto) {
     return this.studentsService.findAll(query);
   }
@@ -86,41 +86,41 @@ export class StudentsController {
     summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}`,
   })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  @Get(":id")
+  findOne(@Param("id", ParseIntPipe) id: number) {
     return this.studentsService.findOne(id);
   }
 
   @ApiOperation({ summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}` })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-  @Put(':id')
-  @ApiConsumes('multipart/form-data')
+  @Put(":id")
+  @ApiConsumes("multipart/form-data")
   @ApiBody({
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        full_name: { type: 'string' },
-        email: { type: 'string' },
-        password: { type: 'string' },
-        phone: { type: 'string' },
-        address: { type: 'string' },
-        photo: { type: 'string', format: 'binary' },
+        full_name: { type: "string" },
+        email: { type: "string" },
+        password: { type: "string" },
+        phone: { type: "string" },
+        address: { type: "string" },
+        photo: { type: "string", format: "binary" },
       },
     },
   })
   @UseInterceptors(
-    FileInterceptor('photo', {
+    FileInterceptor("photo", {
       storage: diskStorage({
-        destination: './src/uploads',
+        destination: "./src/uploads",
         filename: (req, file, cb) => {
-          const filename = Date.now() + '.' + file.originalname.split('.')[1];
+          const filename = Date.now() + "." + file.originalname.split(".")[1];
           cb(null, filename);
         },
       }),
     }),
   )
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param("id", ParseIntPipe) id: number,
     @Body() payload: UpdateStudentDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
@@ -129,8 +129,8 @@ export class StudentsController {
 
   @ApiOperation({ summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}` })
   @Roles(UserRole.SUPERADMIN, UserRole.ADMIN)
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  @Delete(":id")
+  remove(@Param("id", ParseIntPipe) id: number) {
     return this.studentsService.remove(id);
   }
 }

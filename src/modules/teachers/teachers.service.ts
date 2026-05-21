@@ -3,23 +3,23 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { CreateTeacherDto } from './dto/create-teacher.dto';
-import { UpdateTeacherDto } from './dto/update-teacher.dto';
-import { PrismaService } from 'src/core/database/prisma.service';
-import * as bcrypt from 'bcrypt';
-import { join } from 'path';
-import fs from 'fs';
-import { EmailService } from 'src/common/email/email.service';
-import { Prisma, Status } from '@prisma/client';
-import { uploadToSupabase } from 'src/core/utils/supabase-upload';
-import { createClient } from '@supabase/supabase-js';
+} from "@nestjs/common";
+import { CreateTeacherDto } from "./dto/create-teacher.dto";
+import { UpdateTeacherDto } from "./dto/update-teacher.dto";
+import { PrismaService } from "src/core/database/prisma.service";
+import * as bcrypt from "bcrypt";
+import { join } from "path";
+import fs from "fs";
+import { EmailService } from "src/common/email/email.service";
+import { Prisma, Status } from "@prisma/client";
+import { uploadToSupabase } from "src/core/utils/supabase-upload";
+import { createClient } from "@supabase/supabase-js";
 @Injectable()
 export class TeachersService {
   constructor(
     private prisma: PrismaService,
-    private emailService: EmailService
-  ) { }
+    private emailService: EmailService,
+  ) {}
   async create(payload: CreateTeacherDto, filename: string) {
     const existTeacher = await this.prisma.teachers.findFirst({
       where: {
@@ -36,10 +36,10 @@ export class TeachersService {
 
     if (existTeacher) {
       if (filename) {
-        const filePath = join(process.cwd(), 'src', 'uploads', filename);
+        const filePath = join(process.cwd(), "src", "uploads", filename);
         await fs.unlinkSync(filePath);
       }
-      throw new ConflictException('Teacher already exists');
+      throw new ConflictException("Teacher already exists");
     }
 
     if (payload.groups?.length) {
@@ -55,7 +55,7 @@ export class TeachersService {
       });
 
       if (groups.length !== payload.groups.length) {
-        throw new NotFoundException('Guruhlardan biri topilmadi');
+        throw new NotFoundException("Guruhlardan biri topilmadi");
       }
     }
     if (filename) {
@@ -72,18 +72,24 @@ export class TeachersService {
         address: payload.address,
         password: passHash,
         photo: filename ?? null,
-        teachersGroups: payload.groups?.length ? {
-          create: payload.groups?.map((groupId) => ({
-            group_id: groupId
-          }))
-        } : undefined,
+        teachersGroups: payload.groups?.length
+          ? {
+              create: payload.groups?.map((groupId) => ({
+                group_id: groupId,
+              })),
+            }
+          : undefined,
       },
     });
-    await this.emailService.sendEmail(payload.email, payload.phone, payload.password);
+    await this.emailService.sendEmail(
+      payload.email,
+      payload.phone,
+      payload.password,
+    );
 
     return {
       success: true,
-      message: 'Teacher created successfully',
+      message: "Teacher created successfully",
     };
   }
 
@@ -97,7 +103,7 @@ export class TeachersService {
     }
 
     if (query.full_name) {
-      where.full_name = { contains: query.full_name, mode: 'insensitive' };
+      where.full_name = { contains: query.full_name, mode: "insensitive" };
     }
 
     if (query.email) {
@@ -115,7 +121,7 @@ export class TeachersService {
     const teachers = await this.prisma.teachers.findMany({
       where,
       orderBy: {
-        id: 'asc'
+        id: "asc",
       },
       select: {
         id: true,
@@ -131,11 +137,11 @@ export class TeachersService {
             group: {
               select: {
                 id: true,
-                name: true
-              }
-            }
-          }
-        }
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -164,15 +170,15 @@ export class TeachersService {
             group: {
               select: {
                 id: true,
-                name: true
-              }
-            }
-          }
-        }
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
     if (!teacher) {
-      throw new NotFoundException('Teacher not found');
+      throw new NotFoundException("Teacher not found");
     }
     return {
       success: true,
@@ -184,16 +190,16 @@ export class TeachersService {
     const { id, role } = req.user;
 
     if (role == "SUPERADMIN" || role == "ADMIN") {
-      throw new NotFoundException('This is for teachers only');
+      throw new NotFoundException("This is for teachers only");
     }
 
     const groups = await this.prisma.groups.findMany({
       where: {
         teachersGroups: {
           some: {
-            teacher_id: id
-          }
-        }
+            teacher_id: id,
+          },
+        },
       },
       select: {
         id: true,
@@ -208,15 +214,15 @@ export class TeachersService {
               select: {
                 id: true,
                 full_name: true,
-                phone: true
-              }
-            }
-          }
-        }
-      }
-    })
+                phone: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
-    return groups.map(el => ({
+    return groups.map((el) => ({
       id: el.id,
       name: el.name,
       max_students: el.max_students,
@@ -224,21 +230,21 @@ export class TeachersService {
       start_time: el.start_time,
       week_day: el.week_day,
       studentCount: el.studentGroups.length,
-      students: el.studentGroups.map(el => el.students)
-    }))
+      students: el.studentGroups.map((el) => el.students),
+    }));
   }
 
   async update(id: number, payload: UpdateTeacherDto, filename?: string) {
     const teacher = await this.prisma.teachers.findUnique({ where: { id } });
 
     if (!teacher) {
-      throw new NotFoundException('Teacher not found');
+      throw new NotFoundException("Teacher not found");
     }
     let photo = teacher.photo;
 
     if (filename) {
       if (teacher.photo) {
-        const filePath = join(process.cwd(), 'src', 'uploads', teacher.photo);
+        const filePath = join(process.cwd(), "src", "uploads", teacher.photo);
         try {
           fs.unlinkSync(filePath);
         } catch {}
@@ -248,7 +254,7 @@ export class TeachersService {
         if (url && key) {
           try {
             const supabase = createClient(url, key);
-            await supabase.storage.from('NajotEdu').remove([teacher.photo]);
+            await supabase.storage.from("NajotEdu").remove([teacher.photo]);
           } catch {}
         }
       }
@@ -258,7 +264,11 @@ export class TeachersService {
 
     let groupIds: number[] = [];
     if (payload.groups) {
-      groupIds = (Array.isArray(payload.groups) ? payload.groups : [payload.groups]).map(Number).filter(Boolean);
+      groupIds = (
+        Array.isArray(payload.groups) ? payload.groups : [payload.groups]
+      )
+        .map(Number)
+        .filter(Boolean);
     }
 
     if (groupIds.length) {
@@ -274,10 +284,9 @@ export class TeachersService {
       });
 
       if (groups.length !== groupIds.length) {
-        throw new NotFoundException('Guruhlardan biri topilmadi');
+        throw new NotFoundException("Guruhlardan biri topilmadi");
       }
     }
-
 
     let passHash;
     if (payload.password) {
@@ -292,32 +301,29 @@ export class TeachersService {
         ...teacherData,
         photo,
         password: passHash,
-        teachersGroups: groupIds.length ? {
-          deleteMany: {},
-          create: groupIds.map((groupId) => ({
-            group_id: groupId,
-          })),
-        } : undefined,
+        teachersGroups: groupIds.length
+          ? {
+              deleteMany: {},
+              create: groupIds.map((groupId) => ({
+                group_id: groupId,
+              })),
+            }
+          : undefined,
       },
     });
     return {
       success: true,
-      message: 'Teacher updated successfully',
+      message: "Teacher updated successfully",
     };
   }
 
   async remove(id: number) {
     const teacher = await this.prisma.teachers.findUnique({ where: { id } });
     if (!teacher) {
-      throw new NotFoundException('Teacher not found');
+      throw new NotFoundException("Teacher not found");
     }
     if (teacher.photo) {
-      const filePath = join(
-        process.cwd(),
-        'src',
-        'uploads',
-        teacher.photo,
-      );
+      const filePath = join(process.cwd(), "src", "uploads", teacher.photo);
       if (fs.existsSync(filePath)) {
         await fs.unlinkSync(filePath);
       }
@@ -326,12 +332,12 @@ export class TeachersService {
     await this.prisma.teachers.update({
       where: { id },
       data: {
-        status: Status.inactive
-      }
+        status: Status.inactive,
+      },
     });
     return {
       success: true,
-      message: 'Teacher deleted successfully',
+      message: "Teacher deleted successfully",
     };
   }
 }

@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { ApiProperty } from "@nestjs/swagger";
+import { Transform } from "class-transformer";
 import {
   IsArray,
   IsEmail,
@@ -8,7 +8,7 @@ import {
   IsOptional,
   IsString,
   IsStrongPassword,
-} from 'class-validator';
+} from "class-validator";
 export class CreateStudentDto {
   @ApiProperty()
   @IsString()
@@ -24,7 +24,7 @@ export class CreateStudentDto {
   password: string;
 
   @ApiProperty()
-  @IsMobilePhone('uz-UZ')
+  @IsMobilePhone("uz-UZ")
   phone: string;
 
   @ApiProperty()
@@ -38,16 +38,16 @@ export class CreateStudentDto {
   birth_date: string;
 
   @ApiProperty({ type: [Number], example: [1, 2, 3] })
-    @IsOptional()
-    @Transform(({ value }) => {
-      if (!value) return [];
-      if (typeof value === 'string') {
-        return value.split(',').map((v) => Number(v.trim()));
-      }
-      if (Array.isArray(value)) {
-        return value.map((v) => Number(v));
-      }
-      return [Number(value)];
-    })
-    groups?: number[];
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (!value) return [];
+    if (typeof value === "string") {
+      return value.split(",").map((v) => Number(v.trim()));
+    }
+    if (Array.isArray(value)) {
+      return value.map((v) => Number(v));
+    }
+    return [Number(value)];
+  })
+  groups?: number[];
 }

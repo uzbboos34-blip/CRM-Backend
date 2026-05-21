@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsString, Max, Min } from 'class-validator';
+import { ApiProperty } from "@nestjs/swagger";
+import { IsInt, IsNotEmpty, IsString, Max, Min } from "class-validator";
 
 export class CreateRoomDto {
   @ApiProperty()

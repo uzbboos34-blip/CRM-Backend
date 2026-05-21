@@ -1,9 +1,9 @@
-import { BadRequestException, Body, Injectable, Req } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import * as bcrypt from 'bcrypt';
-import { PrismaService } from 'src/core/database/prisma.service';
-import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '@prisma/client';
+import { BadRequestException, Body, Injectable, Req } from "@nestjs/common";
+import { CreateAuthDto } from "./dto/create-auth.dto";
+import * as bcrypt from "bcrypt";
+import { PrismaService } from "src/core/database/prisma.service";
+import { JwtService } from "@nestjs/jwt";
+import { UserRole } from "@prisma/client";
 
 @Injectable()
 export class AuthService {
@@ -18,12 +18,12 @@ export class AuthService {
       },
     });
     if (!user) {
-      throw new BadRequestException('User or password not found');
+      throw new BadRequestException("User or password not found");
     }
 
     const res = await bcrypt.compare(payload.password, user.password);
     if (!res) {
-      throw new BadRequestException('User or password not found');
+      throw new BadRequestException("User or password not found");
     }
 
     return {
@@ -48,12 +48,12 @@ export class AuthService {
       },
     });
     if (!teacher) {
-      throw new BadRequestException('Teacher or password not found');
+      throw new BadRequestException("Teacher or password not found");
     }
 
     const res = await bcrypt.compare(payload.password, teacher.password);
     if (!res) {
-      throw new BadRequestException('Teacher or password not found');
+      throw new BadRequestException("Teacher or password not found");
     }
 
     return {
@@ -78,12 +78,12 @@ export class AuthService {
       },
     });
     if (!student) {
-      throw new BadRequestException('Student or password not found');
+      throw new BadRequestException("Student or password not found");
     }
 
     const res = await bcrypt.compare(payload.password, student.password);
     if (!res) {
-      throw new BadRequestException('Student or password not found');
+      throw new BadRequestException("Student or password not found");
     }
 
     return {
@@ -103,9 +103,10 @@ export class AuthService {
 
   async me(@Req() req: any) {
     if (!req || !req.user) {
-      throw new BadRequestException('User not found in request');
+      throw new BadRequestException("User not found in request");
     }
-    const {id, full_name, email, phone, address, photo, status, role} = req.user
+    const { id, full_name, email, phone, address, photo, status, role } =
+      req.user;
     return {
       success: true,
       data: {
@@ -116,8 +117,8 @@ export class AuthService {
         address,
         photo,
         status,
-        role
-      }    
+        role,
+      },
     };
   }
 }

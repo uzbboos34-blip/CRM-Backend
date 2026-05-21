@@ -3,8 +3,8 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
 
 @Injectable()
 export class TokenGuard implements CanActivate {
@@ -16,12 +16,12 @@ export class TokenGuard implements CanActivate {
       let token = req.headers.authorization;
 
       if (!token) {
-        throw new UnauthorizedException('Token not provided');
+        throw new UnauthorizedException("Token not provided");
       }
 
-      token = req.headers.authorization.split(' ')[1];
+      token = req.headers.authorization.split(" ")[1];
       const user = await this.jwtServise.verify(token);
-      req['user'] = user;
+      req["user"] = user;
       return true;
     } catch (error) {
       throw new UnauthorizedException(error.message);

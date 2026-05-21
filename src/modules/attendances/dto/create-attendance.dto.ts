@@ -1,6 +1,13 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsArray, IsNumber, IsBoolean, IsString, IsDateString, ValidateNested } from "class-validator";
+import {
+  IsArray,
+  IsNumber,
+  IsBoolean,
+  IsString,
+  IsDateString,
+  ValidateNested,
+} from "class-validator";
 
 export class AttendanceRecord {
   @ApiProperty()
@@ -17,7 +24,7 @@ export class CreateAttendanceDto {
   @IsNumber()
   group_id: number;
 
-  @ApiProperty({ example: '2025-05-13' })
+  @ApiProperty({ example: "2025-05-13" })
   @IsDateString()
   date: string;
 
@@ -25,7 +32,7 @@ export class CreateAttendanceDto {
   @IsString()
   topic: string;
 
-  @ApiProperty({ example: 'plan' })
+  @ApiProperty({ example: "plan" })
   @IsString()
   type: string;
 
