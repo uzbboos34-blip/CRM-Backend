@@ -47,7 +47,7 @@ export class VideosService {
     }
 
     // 2. Get actual file size if saved to disk and upload to Supabase
-    let actualSize: bigint | null = null;
+    let actualSize: bigint | null = dto.file_size ? BigInt(dto.file_size) : null;
     let finalUrl = dto.video_url || "";
 
     if (video_file) {
