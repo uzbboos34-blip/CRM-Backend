@@ -46,22 +46,36 @@ export class AttendancesService {
       );
     }
 
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
+    // Tashkent timezone offset (+5 hours) for timezone-independent check
+    const tzOffsetMs = 5 * 60 * 60 * 1000;
+    const tashkentToday = new Date(Date.now() + tzOffsetMs);
+    const todayStr = tashkentToday.toISOString().slice(0, 10);
     const isToday = date === todayStr;
 
-    // 2. Vaqt tekshirish (faqat TEACHER uchun va faqat bugun uchun)
-    if (currentUser.role === UserRole.TEACHER && isToday) {
+    // 2. Vaqt va sana tekshirish (faqat TEACHER uchun)
+    if (currentUser.role === UserRole.TEACHER) {
+      if (!isToday) {
+        throw new BadRequestException(
+          "O'qituvchilar faqat bugungi dars uchun davomat olishi mumkin",
+        );
+      }
+
       const toMin = (t: string) => {
         const [h, m] = t.split(":").map(Number);
         return h * 60 + m;
       };
       const start = toMin(group.start_time);
       const end = start + (group.course?.duration_hours ?? 2) * 60;
-      const now = today.getHours() * 60 + today.getMinutes();
-      if (!(start <= now && now <= end)) {
+      const now = tashkentToday.getUTCHours() * 60 + tashkentToday.getUTCMinutes();
+
+      if (now < start) {
         throw new BadRequestException(
-          "Dars vaqtidan tashqarida davomat olib bo'lmaydi",
+          `Dars hali boshlanmagan. Dars boshlanish vaqti: ${group.start_time}`,
+        );
+      }
+      if (now > end) {
+        throw new BadRequestException(
+          "Dars vaqti tugagan. Davomat olish muddati tugadi.",
         );
       }
     }
