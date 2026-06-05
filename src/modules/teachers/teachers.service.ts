@@ -206,9 +206,30 @@ export class TeachersService {
         name: true,
         max_students: true,
         start_date: true,
+        end_date: true,
         start_time: true,
         week_day: true,
+        status: true,
+        rooms: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        course: {
+          select: {
+            id: true,
+            name: true,
+            duration_hours: true,
+          },
+        },
         studentGroups: {
+          where: {
+            status: Status.active,
+            students: {
+              status: "active",
+            },
+          },
           select: {
             students: {
               select: {
@@ -225,10 +246,15 @@ export class TeachersService {
     return groups.map((el) => ({
       id: el.id,
       name: el.name,
+      status: el.status,
       max_students: el.max_students,
       start_date: el.start_date,
+      end_date: el.end_date,
       start_time: el.start_time,
       week_day: el.week_day,
+      course: el.course?.name || "—",
+      course_duration: el.course?.duration_hours || 0,
+      rooms: el.rooms?.name || "—",
       studentCount: el.studentGroups.length,
       students: el.studentGroups.map((el) => el.students),
     }));
