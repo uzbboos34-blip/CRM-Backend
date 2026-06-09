@@ -388,9 +388,9 @@ export class StudentsService {
     return { success: true, data };
   }
 
-  // ✅ LESSON DETAIL — to'liq ma'lumot (StudentLessonDetail sahifasi uchun)
-  async findMyGroupLessons(studentId: number, groupId: number) {
-    // Student shu guruhga tegishliligini tekshirish
+  // ✅ BITTA DARS DETAIL — faqat bosilgan darsning to'liq ma'lumoti
+  async findMyGroupLessonDetail(studentId: number, groupId: number, lessonId: number) {
+    // Guruhga a'zoligini tekshirish
     const membership = await this.prisma.studentGroup.findFirst({
       where: { student_id: studentId, group_id: groupId },
     });
@@ -398,9 +398,9 @@ export class StudentsService {
       throw new ForbiddenException('Siz bu guruhga tegishli emassiz');
     }
 
-    const lessons = await this.prisma.lesson.findMany({
-      where: { group_id: groupId, status: Status.active },
-      orderBy: { date: 'desc' },
+    // Faqat bitta darsni olish
+    const lesson = await this.prisma.lesson.findFirst({
+      where: { id: lessonId, group_id: groupId, status: Status.active },
       select: {
         id: true,
         topic: true,
@@ -449,6 +449,10 @@ export class StudentsService {
       },
     });
 
+    if (!lesson) {
+      throw new NotFoundException('Dars topilmadi');
+    }
+
     // Video fayllarni homework file'dan filter qilish
     const VIDEO_EXTS = ['mp4', 'webm', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'm4v'];
     const isVideoFile = (f: string) => {
@@ -456,34 +460,34 @@ export class StudentsService {
       return VIDEO_EXTS.includes(ext);
     };
 
-    const data = lessons.map((lesson) => ({
-      ...lesson,
-      homeWorks: lesson.homeWorks.map((hw) => {
-        let cleanedFile: string | null = hw.file;
-        if (hw.file) {
-          if (hw.file.trim().startsWith('[')) {
-            try {
-              const files: string[] = JSON.parse(hw.file);
-              const filtered = files.filter((f) => !isVideoFile(f));
-              cleanedFile = filtered.length > 0 ? JSON.stringify(filtered) : null;
-            } catch {
-              cleanedFile = isVideoFile(hw.file) ? null : hw.file;
-            }
-          } else {
+    const cleanedHomeWorks = lesson.homeWorks.map((hw) => {
+      let cleanedFile: string | null = hw.file;
+      if (hw.file) {
+        if (hw.file.trim().startsWith('[')) {
+          try {
+            const files: string[] = JSON.parse(hw.file);
+            const filtered = files.filter((f) => !isVideoFile(f));
+            cleanedFile = filtered.length > 0 ? JSON.stringify(filtered) : null;
+          } catch {
             cleanedFile = isVideoFile(hw.file) ? null : hw.file;
           }
+        } else {
+          cleanedFile = isVideoFile(hw.file) ? null : hw.file;
         }
-        return {
-          id: hw.id,
-          title: hw.title,
-          description: hw.description,
-          file: cleanedFile,
-          created_at: hw.created_at,
-          homeWorkAnswers: hw.homeWorkAnswers,
-        };
-      }),
-    }));
+      }
+      return {
+        id: hw.id,
+        title: hw.title,
+        description: hw.description,
+        file: cleanedFile,
+        created_at: hw.created_at,
+        homeWorkAnswers: hw.homeWorkAnswers,
+      };
+    });
 
-    return { success: true, data };
+    return {
+      success: true,
+      data: { ...lesson, homeWorks: cleanedHomeWorks },
+    };
   }
 }

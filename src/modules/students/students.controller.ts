@@ -91,14 +91,15 @@ export class StudentsController {
     return this.studentsService.findMyGroupLessonsList(req.user.id, groupId);
   }
 
-  @ApiOperation({ summary: "Guruh darslarini ko'rish (student uchun)" })
+  @ApiOperation({ summary: "Bitta dars to'liq ma'lumoti (student uchun)" })
   @Roles(UserRole.STUDENT)
-  @Get("my/groups/:groupId/lessons")
-  findMyGroupLessons(
+  @Get("my/groups/:groupId/lessons/:lessonId")
+  findMyGroupLessonDetail(
     @Req() req: any,
     @Param("groupId", ParseIntPipe) groupId: number,
+    @Param("lessonId", ParseIntPipe) lessonId: number,
   ) {
-    return this.studentsService.findMyGroupLessons(req.user.id, groupId);
+    return this.studentsService.findMyGroupLessonDetail(req.user.id, groupId, lessonId);
   }
 
   @ApiOperation({
