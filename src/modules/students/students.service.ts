@@ -334,7 +334,7 @@ export class StudentsService {
   }
 
   async findMyGroupLessons(studentId: number, groupId: number) {
-    // Student shu guruhga tegishliligini tekshirish
+    // ✅ Student shu guruhga tegishliligini tekshirish
     const membership = await this.prisma.studentGroup.findFirst({
       where: { student_id: studentId, group_id: groupId },
     });
@@ -342,6 +342,7 @@ export class StudentsService {
       throw new ForbiddenException('Siz bu guruhga tegishli emassiz');
     }
 
+    // ✅ Faqat shu guruhning darslarini olish
     const lessons = await this.prisma.lesson.findMany({
       where: { group_id: groupId, status: Status.active },
       orderBy: { date: 'desc' },
@@ -351,6 +352,7 @@ export class StudentsService {
         description: true,
         date: true,
         _count: { select: { videos: true } },
+        // ✅ Videolar — faqat asosiy ma'lumotlar
         videos: {
           select: {
             id: true,
@@ -358,17 +360,19 @@ export class StudentsService {
             video_url: true,
             created_at: true,
           },
+          orderBy: { created_at: 'asc' },
         },
+        // ✅ Uyga vazifalar — faqat bu studentning javoblari bilan
         homeWorks: {
           select: {
             id: true,
             title: true,
             description: true,
             file: true,
-            video_url: true,
+            // video_url OLIB TASHLANDI — kerakmas
             created_at: true,
             homeWorkAnswers: {
-              where: { student_id: studentId },
+              where: { student_id: studentId }, // ✅ Faqat shu studentning javobi
               select: {
                 id: true,
                 title: true,
@@ -382,16 +386,8 @@ export class StudentsService {
                     grade: true,
                     title: true,
                     created_at: true,
-                    teachers: {
-                      select: {
-                        full_name: true,
-                      }
-                    },
-                    users: {
-                      select: {
-                        full_name: true,
-                      }
-                    }
+                    teachers: { select: { full_name: true } },
+                    users: { select: { full_name: true } },
                   },
                 },
               },
@@ -401,6 +397,45 @@ export class StudentsService {
       },
     });
 
-    return { success: true, data: lessons };
+    // ✅ Video fayllarni homework file ro'yxatidan filter qilish
+    const VIDEO_EXTS = ['mp4', 'webm', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'm4v'];
+    const isVideoFile = (filename: string) => {
+      if (!filename) return false;
+      const ext = filename.split('.').pop()?.toLowerCase().split('?')[0] || '';
+      return VIDEO_EXTS.includes(ext);
+    };
+
+    const cleanedLessons = lessons.map((lesson) => ({
+      ...lesson,
+      homeWorks: lesson.homeWorks.map((hw) => {
+        // file field'dan video fayllarni olib tashlash
+        let cleanedFile: string | null = hw.file;
+        if (hw.file) {
+          // Agar JSON array bo'lsa
+          if (hw.file.trim().startsWith('[')) {
+            try {
+              const files: string[] = JSON.parse(hw.file);
+              const filtered = files.filter((f) => !isVideoFile(f));
+              cleanedFile = filtered.length > 0 ? JSON.stringify(filtered) : null;
+            } catch {
+              cleanedFile = isVideoFile(hw.file) ? null : hw.file;
+            }
+          } else {
+            cleanedFile = isVideoFile(hw.file) ? null : hw.file;
+          }
+        }
+
+        return {
+          id: hw.id,
+          title: hw.title,
+          description: hw.description,
+          file: cleanedFile,
+          created_at: hw.created_at,
+          homeWorkAnswers: hw.homeWorkAnswers,
+        };
+      }),
+    }));
+
+    return { success: true, data: cleanedLessons };
   }
 }
