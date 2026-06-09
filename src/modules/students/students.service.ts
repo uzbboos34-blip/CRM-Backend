@@ -351,17 +351,36 @@ export class StudentsService {
         description: true,
         date: true,
         _count: { select: { videos: true } },
+        videos: {
+          select: {
+            id: true,
+            title: true,
+            video_url: true,
+            created_at: true,
+          },
+        },
         homeWorks: {
           select: {
             id: true,
             title: true,
+            description: true,
+            created_at: true,
             homeWorkAnswers: {
               where: { student_id: studentId },
               select: {
                 id: true,
+                title: true,
+                file: true,
                 homeworkStatus: true,
                 created_at: true,
                 updated_at: true,
+                homeWorkResults: {
+                  select: {
+                    id: true,
+                    grade: true,
+                    title: true,
+                  },
+                },
               },
             },
           },
