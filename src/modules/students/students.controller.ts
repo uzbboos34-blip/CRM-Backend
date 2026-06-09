@@ -12,6 +12,7 @@ import {
   Put,
   UseGuards,
   Query,
+  Req,
 } from "@nestjs/common";
 import { StudentsService } from "./students.service";
 import {
@@ -71,6 +72,13 @@ export class StudentsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.studentsService.create(payload, file?.filename);
+  }
+
+  @ApiOperation({ summary: "Studentning o'z guruhlari" })
+  @Roles(UserRole.STUDENT)
+  @Get("my/groups")
+  findMyGroups(@Req() req: any) {
+    return this.studentsService.findMyGroups(req.user.id);
   }
 
   @ApiOperation({

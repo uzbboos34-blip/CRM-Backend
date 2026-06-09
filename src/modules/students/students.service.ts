@@ -303,4 +303,48 @@ export class StudentsService {
       message: "Student deleted successfully",
     };
   }
+
+  async findMyGroups(studentId: number) {
+    const studentGroups = await this.prisma.studentGroup.findMany({
+      where: {
+        student_id: studentId,
+      },
+      select: {
+        id: true,
+        status: true,
+        groups: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            start_date: true,
+            week_day: true,
+            start_time: true,
+            status: true,
+            course: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            teachersGroups: {
+              select: {
+                teacher: {
+                  select: {
+                    id: true,
+                    full_name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      success: true,
+      data: studentGroups,
+    };
+  }
 }
