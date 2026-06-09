@@ -379,6 +379,17 @@ export class StudentsService {
                     id: true,
                     grade: true,
                     title: true,
+                    created_at: true,
+                    teachers: {
+                      select: {
+                        full_name: true,
+                      }
+                    },
+                    users: {
+                      select: {
+                        full_name: true,
+                      }
+                    }
                   },
                 },
               },
