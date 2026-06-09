@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -10,7 +11,7 @@ import * as bcrypt from "bcrypt";
 import { join } from "path";
 import fs from "fs";
 import { EmailService } from "src/common/email/email.service";
-import { StudentStatus } from "@prisma/client";
+import { Status, StudentStatus } from "@prisma/client";
 import { uploadToSupabase } from "src/core/utils/supabase-upload";
 import { createClient } from "@supabase/supabase-js";
 @Injectable()
@@ -306,9 +307,7 @@ export class StudentsService {
 
   async findMyGroups(studentId: number) {
     const studentGroups = await this.prisma.studentGroup.findMany({
-      where: {
-        student_id: studentId,
-      },
+      where: { student_id: studentId },
       select: {
         id: true,
         status: true,
@@ -321,20 +320,48 @@ export class StudentsService {
             week_day: true,
             start_time: true,
             status: true,
-            course: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
+            course: { select: { id: true, name: true } },
             teachersGroups: {
               select: {
-                teacher: {
-                  select: {
-                    id: true,
-                    full_name: true,
-                  },
-                },
+                teacher: { select: { id: true, full_name: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    return { success: true, data: studentGroups };
+  }
+
+  async findMyGroupLessons(studentId: number, groupId: number) {
+    // Student shu guruhga tegishliligini tekshirish
+    const membership = await this.prisma.studentGroup.findFirst({
+      where: { student_id: studentId, group_id: groupId },
+    });
+    if (!membership) {
+      throw new ForbiddenException('Siz bu guruhga tegishli emassiz');
+    }
+
+    const lessons = await this.prisma.lesson.findMany({
+      where: { group_id: groupId, status: Status.active },
+      orderBy: { date: 'desc' },
+      select: {
+        id: true,
+        topic: true,
+        description: true,
+        date: true,
+        _count: { select: { videos: true } },
+        homeWorks: {
+          select: {
+            id: true,
+            title: true,
+            homeWorkAnswers: {
+              where: { student_id: studentId },
+              select: {
+                id: true,
+                homeworkStatus: true,
+                created_at: true,
+                updated_at: true,
               },
             },
           },
@@ -342,9 +369,6 @@ export class StudentsService {
       },
     });
 
-    return {
-      success: true,
-      data: studentGroups,
-    };
+    return { success: true, data: lessons };
   }
 }
