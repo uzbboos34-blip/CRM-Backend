@@ -333,8 +333,9 @@ export class StudentsService {
     return { success: true, data: studentGroups };
   }
 
-  async findMyGroupLessons(studentId: number, groupId: number) {
-    // ✅ Student shu guruhga tegishliligini tekshirish
+  // ✅ LESSON RO'YXATI — faqat kerakli minimal ma'lumot (StudentGroupLessons sahifasi uchun)
+  async findMyGroupLessonsList(studentId: number, groupId: number) {
+    // Guruhga a'zoligini tekshirish
     const membership = await this.prisma.studentGroup.findFirst({
       where: { student_id: studentId, group_id: groupId },
     });
@@ -342,7 +343,61 @@ export class StudentsService {
       throw new ForbiddenException('Siz bu guruhga tegishli emassiz');
     }
 
-    // ✅ Faqat shu guruhning darslarini olish
+    const lessons = await this.prisma.lesson.findMany({
+      where: { group_id: groupId, status: Status.active },
+      orderBy: { date: 'desc' },
+      select: {
+        id: true,
+        topic: true,
+        date: true,
+        _count: { select: { videos: true } }, // faqat video soni
+        homeWorks: {
+          select: {
+            id: true,
+            homeWorkAnswers: {
+              where: { student_id: studentId },
+              select: {
+                homeworkStatus: true, // faqat holat
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Ma'lumotlarni soddalashtirish
+    const data = lessons.map((lesson) => {
+      const hw = lesson.homeWorks[0] ?? null;
+      const answer = hw?.homeWorkAnswers[0] ?? null;
+
+      let hwStatus: string = 'NONE'; // Uy vazifasi berilmagan
+      if (hw) {
+        hwStatus = answer ? answer.homeworkStatus : 'NOT_DONE';
+      }
+
+      return {
+        id: lesson.id,
+        topic: lesson.topic,
+        date: lesson.date,
+        videoCount: lesson._count.videos,
+        homeworkId: hw?.id ?? null,
+        homeworkStatus: hwStatus,
+      };
+    });
+
+    return { success: true, data };
+  }
+
+  // ✅ LESSON DETAIL — to'liq ma'lumot (StudentLessonDetail sahifasi uchun)
+  async findMyGroupLessons(studentId: number, groupId: number) {
+    // Student shu guruhga tegishliligini tekshirish
+    const membership = await this.prisma.studentGroup.findFirst({
+      where: { student_id: studentId, group_id: groupId },
+    });
+    if (!membership) {
+      throw new ForbiddenException('Siz bu guruhga tegishli emassiz');
+    }
+
     const lessons = await this.prisma.lesson.findMany({
       where: { group_id: groupId, status: Status.active },
       orderBy: { date: 'desc' },
@@ -352,7 +407,6 @@ export class StudentsService {
         description: true,
         date: true,
         _count: { select: { videos: true } },
-        // ✅ Videolar — faqat asosiy ma'lumotlar
         videos: {
           select: {
             id: true,
@@ -362,17 +416,15 @@ export class StudentsService {
           },
           orderBy: { created_at: 'asc' },
         },
-        // ✅ Uyga vazifalar — faqat bu studentning javoblari bilan
         homeWorks: {
           select: {
             id: true,
             title: true,
             description: true,
             file: true,
-            // video_url OLIB TASHLANDI — kerakmas
             created_at: true,
             homeWorkAnswers: {
-              where: { student_id: studentId }, // ✅ Faqat shu studentning javobi
+              where: { student_id: studentId },
               select: {
                 id: true,
                 title: true,
@@ -397,21 +449,18 @@ export class StudentsService {
       },
     });
 
-    // ✅ Video fayllarni homework file ro'yxatidan filter qilish
+    // Video fayllarni homework file'dan filter qilish
     const VIDEO_EXTS = ['mp4', 'webm', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'm4v'];
-    const isVideoFile = (filename: string) => {
-      if (!filename) return false;
-      const ext = filename.split('.').pop()?.toLowerCase().split('?')[0] || '';
+    const isVideoFile = (f: string) => {
+      const ext = f.split('.').pop()?.toLowerCase().split('?')[0] || '';
       return VIDEO_EXTS.includes(ext);
     };
 
-    const cleanedLessons = lessons.map((lesson) => ({
+    const data = lessons.map((lesson) => ({
       ...lesson,
       homeWorks: lesson.homeWorks.map((hw) => {
-        // file field'dan video fayllarni olib tashlash
         let cleanedFile: string | null = hw.file;
         if (hw.file) {
-          // Agar JSON array bo'lsa
           if (hw.file.trim().startsWith('[')) {
             try {
               const files: string[] = JSON.parse(hw.file);
@@ -424,7 +473,6 @@ export class StudentsService {
             cleanedFile = isVideoFile(hw.file) ? null : hw.file;
           }
         }
-
         return {
           id: hw.id,
           title: hw.title,
@@ -436,6 +484,6 @@ export class StudentsService {
       }),
     }));
 
-    return { success: true, data: cleanedLessons };
+    return { success: true, data };
   }
 }

@@ -81,6 +81,16 @@ export class StudentsController {
     return this.studentsService.findMyGroups(req.user.id);
   }
 
+  @ApiOperation({ summary: "Guruh darslar ro'yxati — minimal (student uchun)" })
+  @Roles(UserRole.STUDENT)
+  @Get("my/groups/:groupId/lessons/list")
+  findMyGroupLessonsList(
+    @Req() req: any,
+    @Param("groupId", ParseIntPipe) groupId: number,
+  ) {
+    return this.studentsService.findMyGroupLessonsList(req.user.id, groupId);
+  }
+
   @ApiOperation({ summary: "Guruh darslarini ko'rish (student uchun)" })
   @Roles(UserRole.STUDENT)
   @Get("my/groups/:groupId/lessons")
