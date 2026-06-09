@@ -354,6 +354,7 @@ export class StudentsService {
         homeWorks: {
           select: {
             id: true,
+            created_at: true,
             homeWorkAnswers: {
               where: { student_id: studentId },
               select: {
@@ -382,6 +383,7 @@ export class StudentsService {
         videoCount: lesson._count.videos,
         homeworkId: hw?.id ?? null,
         homeworkStatus: hwStatus,
+        homeworkCreatedAt: hw?.created_at ?? null,
       };
     });
 
