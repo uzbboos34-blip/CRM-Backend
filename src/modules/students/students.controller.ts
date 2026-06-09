@@ -83,7 +83,7 @@ export class StudentsController {
 
   @ApiOperation({ summary: "Guruh darslar ro'yxati — minimal (student uchun)" })
   @Roles(UserRole.STUDENT)
-  @Get("my/groups/:groupId/lessons/list")
+  @Get("my/groups/:groupId/lessons-summary")
   findMyGroupLessonsList(
     @Req() req: any,
     @Param("groupId", ParseIntPipe) groupId: number,
