@@ -364,6 +364,8 @@ export class StudentsService {
             id: true,
             title: true,
             description: true,
+            file: true,
+            video_url: true,
             created_at: true,
             homeWorkAnswers: {
               where: { student_id: studentId },
