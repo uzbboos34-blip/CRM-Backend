@@ -57,7 +57,9 @@ export class LesssonService {
     currentUser: { id: number; role: UserRole },
     group_id?: number,
   ) {
-    const where: any = {};
+    const where: any = {
+      status: Status.active,
+    };
     if (group_id) where.group_id = group_id;
 
     if (
@@ -86,7 +88,26 @@ export class LesssonService {
     }
 
     if (currentUser.role == UserRole.TEACHER) {
-      where.teacher_id = currentUser.id;
+      if (group_id) {
+        const isTeacherOfGroup = await this.prisma.teachersGroup.findFirst({
+          where: {
+            group_id,
+            teacher_id: currentUser.id,
+          },
+        });
+        if (!isTeacherOfGroup) {
+          throw new ForbiddenException("Bu guruh darslarini ko'rishga ruxsatingiz yo'q");
+        }
+        where.group_id = group_id;
+      } else {
+        const teacherGroups = await this.prisma.teachersGroup.findMany({
+          where: { teacher_id: currentUser.id },
+          select: { group_id: true }
+        });
+        const groupIds = teacherGroups.map(tg => tg.group_id);
+        where.group_id = { in: groupIds };
+      }
+
       return await this.prisma.lesson.findMany({
         where,
         select: {
