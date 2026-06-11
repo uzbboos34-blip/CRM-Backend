@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -581,6 +582,13 @@ export class StudentsService {
 
     let passHash;
     if (payload.password) {
+      if (!payload.currentPassword) {
+        throw new BadRequestException("Amaldagi parol kiritilishi shart");
+      }
+      const isMatch = await bcrypt.compare(payload.currentPassword, student.password);
+      if (!isMatch) {
+        throw new BadRequestException("Amaldagi parol noto'g'ri");
+      }
       passHash = await bcrypt.hash(payload.password, 10);
     }
     let birth_date;
