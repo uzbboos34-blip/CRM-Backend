@@ -84,10 +84,11 @@ export class TeachersService {
       },
     });
     // Email va SMS fire-and-forget (await yo'q, response tezda qaytadi)
+    const cleanPhone = payload.phone.replace(/\+/g, '').replace(/\s+/g, '');
     this.emailService.sendEmail(payload.email, payload.phone, payload.password)
       .catch((err) => console.error('Teacher email xatolik:', err.message));
     this.smsService.sendSMS(
-      `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login:${payload.phone}_Parol:${payload.password} Kodni hech kimga bermang!`,
+      `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login:${cleanPhone}_Parol:${payload.password} Kodni hech kimga bermang!`,
       payload.phone,
     ).catch((err) => console.error('Teacher SMS xatolik:', err.message));
 
