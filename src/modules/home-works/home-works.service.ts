@@ -428,12 +428,33 @@ export class HomeWorksService {
 
     const answer = await this.prisma.homeWorkAnswer.findUnique({
       where: { id: answerId },
-      include: { homeWorks: { select: { group_id: true } } },
+      include: {
+        homeWorks: {
+          select: {
+            group_id: true,
+            created_at: true,
+          },
+        },
+      },
     });
     if (!answer) throw new NotFoundException("Topshiriq topilmadi");
 
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, answer.homeWorks.group_id);
+      
+      if (answer.homeworkStatus === HomeworkStatus.ACCEPTED) {
+        throw new ForbiddenException("Siz bu vazifani qaytadan baholay olmaysiz");
+      }
+    }
+
+    // Determine late submission and apply 10% penalty
+    const deadline = new Date(
+      answer.homeWorks.created_at.getTime() + 24 * 60 * 60 * 1000
+    );
+    const isLate = answer.created_at.getTime() > deadline.getTime();
+    let finalGrade = grade;
+    if (isLate) {
+      finalGrade = Math.round(grade * 0.9);
     }
 
     // Delete previous result if exists
@@ -444,26 +465,26 @@ export class HomeWorksService {
     const result = await this.prisma.homeWorkResult.create({
       data: {
         homework_answer_id: answerId,
-        grade,
-        title: comment || (grade >= 60 ? "Qabul qilindi" : "Qaytarildi"),
+        grade: finalGrade,
+        title: comment || (finalGrade >= 60 ? "Qabul qilindi" : "Qaytarildi"),
         techer_id:
           currentUser.role === UserRole.TEACHER ? currentUser.id : null,
         user_id: currentUser.role !== UserRole.TEACHER ? currentUser.id : null,
       },
     });
 
-    const statusEnum = grade >= 60 ? "ACCEPTED" : "RETURNED";
+    const statusEnum = finalGrade >= 60 ? "ACCEPTED" : "RETURNED";
 
     await this.prisma.homeWorkAnswer.update({
       where: { id: answerId },
       data: { homeworkStatus: statusEnum as any },
     });
 
-    const status = grade >= 60 ? "accepted" : "returned";
+    const status = finalGrade >= 60 ? "accepted" : "returned";
     const message =
-      grade >= 60
-        ? `Vazifa qabul qilindi (${grade} ball)`
-        : `Vazifa qaytarildi (${grade} ball)`;
+      finalGrade >= 60
+        ? `Vazifa qabul qilindi (${finalGrade} ball)`
+        : `Vazifa qaytarildi (${finalGrade} ball)`;
 
     return { success: true, message, data: { result, status } };
   }
