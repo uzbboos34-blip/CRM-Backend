@@ -526,22 +526,9 @@ export class StudentsService {
       select: {
         id: true,
         full_name: true,
-        email: true,
         phone: true,
         photo: true,
-        address: true,
-        status: true,
         birth_date: true,
-        studentGroups: {
-          select: {
-            groups: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
       },
     });
     if (!student) {
