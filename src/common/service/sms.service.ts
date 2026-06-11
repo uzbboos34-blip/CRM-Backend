@@ -49,7 +49,9 @@ export class SmsService {
             )
             return true
         } catch (error) {
-            throw new HttpException('SMS yuborishda xatolik: ' +(error?.response?.data?.message || 'Unknown error'),
+            const errData = error?.response?.data;
+            console.error("Eskiz SMS yuborishda xatolik yuz berdi:", JSON.stringify(errData || error.message));
+            throw new HttpException('SMS yuborishda xatolik: ' +(errData?.message || error.message || 'Unknown error'),
             error?.response?.status || HttpStatus.BAD_REQUEST)
         }
     }

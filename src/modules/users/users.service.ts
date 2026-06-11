@@ -60,7 +60,9 @@ export class UsersService {
         `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login:${payload.phone}_Parol:${payload.password} Kodni hech kimga bermang!`,
         payload.phone,
       );
-    } catch (_) {}
+    } catch (error) {
+      console.error("Admin SMS yuborishda xatolik:", error.message || error);
+    }
 
     return {
       success: true,
