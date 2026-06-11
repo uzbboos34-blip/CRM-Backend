@@ -111,6 +111,50 @@ export class StudentsController {
     return this.studentsService.findAll(query);
   }
 
+  @ApiOperation({ summary: "Student o'z profilini olishi" })
+  @Roles(UserRole.STUDENT)
+  @Get("my/profile")
+  getMyProfile(@Req() req: any) {
+    return this.studentsService.getMyProfile(req.user.id);
+  }
+
+  @ApiOperation({ summary: "Student o'z profilini tahrirlashi" })
+  @Roles(UserRole.STUDENT)
+  @Put("my/profile")
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        full_name: { type: "string" },
+        email: { type: "string" },
+        password: { type: "string" },
+        phone: { type: "string" },
+        address: { type: "string" },
+        birth_date: { type: "string", example: "2006-02-07" },
+        photo: { type: "string", format: "binary" },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor("photo", {
+      storage: diskStorage({
+        destination: "./src/uploads",
+        filename: (req, file, cb) => {
+          const filename = Date.now() + "." + file.originalname.split(".")[1];
+          cb(null, filename);
+        },
+      }),
+    }),
+  )
+  updateMyProfile(
+    @Req() req: any,
+    @Body() payload: any,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    return this.studentsService.updateMyProfile(req.user.id, payload, file?.filename);
+  }
+
   @ApiOperation({
     summary: `${UserRole.SUPERADMIN}, ${UserRole.ADMIN}`,
   })

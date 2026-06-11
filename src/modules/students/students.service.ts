@@ -518,4 +518,108 @@ export class StudentsService {
       data: { ...lesson, homeWorks: cleanedHomeWorks },
     };
   }
+
+  async getMyProfile(id: number) {
+    const student = await this.prisma.students.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        full_name: true,
+        email: true,
+        phone: true,
+        photo: true,
+        address: true,
+        status: true,
+        birth_date: true,
+        studentGroups: {
+          select: {
+            groups: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!student) {
+      throw new NotFoundException("Student not found");
+    }
+    return {
+      success: true,
+      data: student,
+    };
+  }
+
+  async updateMyProfile(id: number, payload: any, filename?: string) {
+    const student = await this.prisma.students.findUnique({ where: { id } });
+    if (!student) {
+      throw new NotFoundException("Student not found");
+    }
+    let photo = student.photo;
+
+    if (filename) {
+      if (student.photo) {
+        const filePath = join(process.cwd(), "src", "uploads", student.photo);
+        try {
+          fs.unlinkSync(filePath);
+        } catch {}
+
+        const url = process.env.SUPABASE_URL;
+        const key = process.env.SUPABASE_KEY;
+        if (url && key) {
+          try {
+            const supabase = createClient(url, key);
+            await supabase.storage.from("NajotEdu").remove([student.photo]);
+          } catch {}
+        }
+      }
+      await uploadToSupabase(filename);
+      photo = filename;
+    }
+
+    let passHash;
+    if (payload.password) {
+      passHash = await bcrypt.hash(payload.password, 10);
+    }
+    let birth_date;
+    if (payload.birth_date) {
+      birth_date = new Date(payload.birth_date);
+    }
+
+    const updateData: any = {};
+    if (payload.full_name) updateData.full_name = payload.full_name;
+    if (payload.email) updateData.email = payload.email;
+    if (payload.phone) updateData.phone = payload.phone;
+    if (payload.address) updateData.address = payload.address;
+    if (birth_date) updateData.birth_date = birth_date;
+    if (passHash) updateData.password = passHash;
+    if (photo) updateData.photo = photo;
+
+    await this.prisma.students.update({
+      where: { id },
+      data: updateData,
+    });
+
+    const isPasswordChanged = !!payload.password;
+    const normalizePhone = (phone: string) => phone.replace(/\+/g, '').replace(/\s+/g, '');
+    const isPhoneChanged = !!(payload.phone && normalizePhone(payload.phone) !== normalizePhone(student.phone));
+
+    if (isPasswordChanged || isPhoneChanged) {
+      const targetPhone = payload.phone || student.phone;
+      const cleanPhone = targetPhone.replace(/\+/g, '').replace(/\s+/g, '');
+      const passwordToSend = payload.password || 'eski';
+
+      this.smsService.sendSMS(
+        `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login:${cleanPhone}_Parol:${passwordToSend} Kodni hech kimga bermang!`,
+        targetPhone,
+      ).catch((err) => console.error('Student update SMS xatolik:', err.message));
+    }
+
+    return {
+      success: true,
+      message: "Profile updated successfully",
+    };
+  }
 }
