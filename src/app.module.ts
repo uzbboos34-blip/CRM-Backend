@@ -10,6 +10,7 @@ import { CoursesModule } from "./modules/courses/courses.module";
 
 import { PrismaModule } from "./core/database/prisma.model";
 import { EmailModule } from "./common/email/email.module";
+import { SmsModule } from "./common/service/sms.module";
 import { LesssonModule } from "./modules/lessson/lessson.module";
 import { AttendancesModule } from "./modules/attendances/attendances.module";
 import { HomeWorksModule } from "./modules/home-works/home-works.module";
@@ -31,6 +32,7 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
     GroupsModule,
     PrismaModule,
     EmailModule,
+    SmsModule,
     LesssonModule,
     AttendancesModule,
     HomeWorksModule,

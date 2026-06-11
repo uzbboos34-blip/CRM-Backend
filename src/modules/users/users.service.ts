@@ -11,12 +11,14 @@ import { Status, UserRole } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { EmailService } from "src/common/email/email.service";
 import { FindAllUsersDto } from "./dto/query.dto";
+import { SmsService } from "src/common/service/sms.service";
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly smsService: SmsService,
   ) {}
   async create(payload: CreateUserDto) {
     const admin = await this.prisma.user.findFirst({
@@ -51,6 +53,14 @@ export class UsersService {
       payload.phone,
       payload.password,
     );
+
+    // SMS orqali login va parolni yuborish
+    try {
+      await this.smsService.sendSMS(
+        `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login: ${payload.phone} Parol: ${payload.password}. Kodni hech kimga bermang!`,
+        payload.phone,
+      );
+    } catch (_) {}
 
     return {
       success: true,

@@ -14,11 +14,13 @@ import { EmailService } from "src/common/email/email.service";
 import { Status, StudentStatus } from "@prisma/client";
 import { uploadToSupabase } from "src/core/utils/supabase-upload";
 import { createClient } from "@supabase/supabase-js";
+import { SmsService } from "src/common/service/sms.service";
 @Injectable()
 export class StudentsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private smsService: SmsService,
   ) {}
   async create(payload: CreateStudentDto, filename: string) {
     const existStudent = await this.prisma.students.findFirst({
@@ -85,6 +87,14 @@ export class StudentsService {
     });
 
     this.emailService.sendEmail(payload.email, payload.phone, payload.password);
+
+    // SMS orqali login va parolni yuborish
+    try {
+      await this.smsService.sendSMS(
+        `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login: ${payload.phone} Parol: ${payload.password}. Kodni hech kimga bermang!`,
+        payload.phone,
+      );
+    } catch (_) {}
 
     return {
       success: true,
