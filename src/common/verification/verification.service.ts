@@ -8,7 +8,7 @@ export class VerificationService {
     ){}
 
     private getMessage(phone: string, password: string){
-        return `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login: ${phone} Parol: ${password}. Kodni hech kimga bermang!`
+        return `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login:${phone}_Parol:${password} Kodni hech kimga bermang!`
     }
     
     async sendOtp(payload: any) {

@@ -91,7 +91,7 @@ export class StudentsService {
     // SMS orqali login va parolni yuborish
     try {
       await this.smsService.sendSMS(
-        `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login: ${payload.phone} Parol: ${payload.password}. Kodni hech kimga bermang!`,
+        `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login:${payload.phone}_Parol:${payload.password} Kodni hech kimga bermang!`,
         payload.phone,
       );
     } catch (_) {}
