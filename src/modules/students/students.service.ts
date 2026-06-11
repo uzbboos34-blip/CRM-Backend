@@ -283,6 +283,22 @@ export class StudentsService {
           : undefined,
       },
     });
+
+    const isPasswordChanged = !!payload.password;
+    const normalizePhone = (phone: string) => phone.replace(/\+/g, '').replace(/\s+/g, '');
+    const isPhoneChanged = !!(payload.phone && normalizePhone(payload.phone) !== normalizePhone(student.phone));
+
+    if (isPasswordChanged || isPhoneChanged) {
+      const targetPhone = payload.phone || student.phone;
+      const cleanPhone = targetPhone.replace(/\+/g, '').replace(/\s+/g, '');
+      const passwordToSend = payload.password || 'eski';
+
+      this.smsService.sendSMS(
+        `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login:${cleanPhone}_Parol:${passwordToSend} Kodni hech kimga bermang!`,
+        targetPhone,
+      ).catch((err) => console.error('Student update SMS xatolik:', err.message));
+    }
+
     return {
       success: true,
       message: "Student updated successfully",
