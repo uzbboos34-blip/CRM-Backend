@@ -363,7 +363,14 @@ export class HomeWorksService {
       where: { homwork_id: hwId, student_id: studentId },
       include: {
         homeWorkResults: {
-          select: { id: true, grade: true, title: true, created_at: true },
+          select: {
+            id: true,
+            grade: true,
+            title: true,
+            created_at: true,
+            teachers: { select: { id: true, full_name: true } },
+            users: { select: { id: true, full_name: true } },
+          },
           orderBy: { created_at: "desc" },
           take: 1,
         },
