@@ -86,15 +86,13 @@ export class StudentsService {
       },
     });
 
-    // Email va SMS background-da yuboriladi (frontendni kuttirib qo'ymasligi uchun)
-    setImmediate(() => {
-      this.emailService.sendEmail(payload.email, payload.phone, payload.password)
-        .catch((err) => console.error('Student email xatolik:', err.message));
-      this.smsService.sendSMS(
-        `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login:${payload.phone}_Parol:${payload.password} Kodni hech kimga bermang!`,
-        payload.phone,
-      ).catch((err) => console.error('Student SMS xatolik:', err.message));
-    });
+    // Email va SMS fire-and-forget (await yo'q, response tezda qaytadi)
+    this.emailService.sendEmail(payload.email, payload.phone, payload.password)
+      .catch((err) => console.error('Student email xatolik:', err.message));
+    this.smsService.sendSMS(
+      `Fixoo platformasidan ro'yxatdan o'tish uchun tasdiqlash kodi: Login:${payload.phone}_Parol:${payload.password} Kodni hech kimga bermang!`,
+      payload.phone,
+    ).catch((err) => console.error('Student SMS xatolik:', err.message));
 
     return {
       success: true,
