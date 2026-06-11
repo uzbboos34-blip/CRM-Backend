@@ -38,7 +38,7 @@ export class SmsService {
                 {
                     from:4546,
                     message,
-                    mobile_phone: to.replace(/\s+/g, ''),
+                    mobile_phone: to.replace(/\+/g, '').replace(/\s+/g, ''),
                     callback_url: ''
                 },
                 {
