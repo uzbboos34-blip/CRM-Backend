@@ -48,6 +48,15 @@ export class HomeWorksService {
         "Bu dars bu guruhga tegishli emas yoki topilmadi",
       );
 
+    const existingHomeWork = await this.prisma.homeWork.findFirst({
+      where: { lesson_id: lessonId },
+    });
+    if (existingHomeWork) {
+      throw new BadRequestException(
+        "Bu dars uchun allaqachon uyga vazifa yaratilgan",
+      );
+    }
+
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, groupId);
     }
@@ -533,6 +542,17 @@ export class HomeWorksService {
   ) {
     const hw = await this.prisma.homeWork.findUnique({ where: { id } });
     if (!hw) throw new NotFoundException("Uyga vazifa topilmadi");
+
+    if (dto.lesson_id && Number(dto.lesson_id) !== hw.lesson_id) {
+      const existingHomeWork = await this.prisma.homeWork.findFirst({
+        where: { lesson_id: Number(dto.lesson_id) },
+      });
+      if (existingHomeWork) {
+        throw new BadRequestException(
+          "Bu dars uchun allaqachon uyga vazifa yaratilgan",
+        );
+      }
+    }
 
     if (currentUser.role === UserRole.TEACHER) {
       await this.checkTeacherGroup(currentUser.id, hw.group_id);
