@@ -414,6 +414,7 @@ export class HomeWorksService {
               files,
               raw_file: answer.file,
               created_at: answer.created_at,
+              allow_resubmit: answer.allow_resubmit,
             }
           : null,
         result: result || null,
@@ -428,6 +429,7 @@ export class HomeWorksService {
     grade: number,
     comment: string,
     currentUser: { id: number; role: UserRole },
+    allow_resubmit?: boolean,
   ) {
     if (grade < 0 || grade > 100) {
       throw new BadRequestException("Ball 0 dan 100 gacha bo'lishi kerak");
@@ -484,7 +486,10 @@ export class HomeWorksService {
 
     await this.prisma.homeWorkAnswer.update({
       where: { id: answerId },
-      data: { homeworkStatus: statusEnum as any },
+      data: {
+        homeworkStatus: statusEnum as any,
+        allow_resubmit: allow_resubmit ?? false,
+      },
     });
 
     const status = finalGrade >= 60 ? "accepted" : "returned";
@@ -531,6 +536,9 @@ export class HomeWorksService {
     const fileJson = JSON.stringify(files);
 
     if (existing) {
+      if (existing.homeworkStatus === HomeworkStatus.RETURNED && !existing.allow_resubmit) {
+        throw new ForbiddenException("Sizga qayta topshirish uchun ruxsat berilmagan");
+      }
       // Update existing
       const updated = await this.prisma.homeWorkAnswer.update({
         where: { id: existing.id },

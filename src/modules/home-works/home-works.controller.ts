@@ -28,7 +28,7 @@ import {
   ApiOperation,
   ApiTags,
 } from "@nestjs/swagger";
-import { IsInt, IsOptional, IsString, Min, Max } from "class-validator";
+import { IsInt, IsOptional, IsString, IsBoolean, Min, Max } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
 
@@ -45,6 +45,11 @@ class GradeDto {
   @IsOptional()
   @IsString()
   comment?: string;
+
+  @ApiProperty({ required: false, description: "Qayta topshirishga ruxsat berish" })
+  @IsOptional()
+  @IsBoolean()
+  allow_resubmit?: boolean;
 }
 
 class SubmitHomeworkDto {
@@ -179,6 +184,7 @@ export class HomeWorksController {
       Number(dto.grade),
       dto.comment,
       req["user"],
+      dto.allow_resubmit,
     );
   }
 

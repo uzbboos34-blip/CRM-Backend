@@ -252,14 +252,15 @@ model HomeWork {
 }
 
 model HomeWorkAnswer {
-  id         Int      @id @default(autoincrement())
-  student_id Int
-  homwork_id Int
-  title      String
-  file       String?
+  id             Int            @id @default(autoincrement())
+  student_id     Int
+  homwork_id     Int
+  title          String
+  file           String?
   homeworkStatus HomeworkStatus @default(PENDING)
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now())
+  allow_resubmit Boolean        @default(false)
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @default(now())
 
   students        Students         @relation(fields: [student_id], references: [id])
   homeWorks       HomeWork         @relation(fields: [homwork_id], references: [id])

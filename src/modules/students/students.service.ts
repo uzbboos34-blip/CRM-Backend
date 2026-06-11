@@ -432,6 +432,7 @@ export class StudentsService {
                 title: true,
                 file: true,
                 homeworkStatus: true,
+                allow_resubmit: true,
                 created_at: true,
                 updated_at: true,
                 homeWorkResults: {
